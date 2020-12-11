@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
+use crate::oci::digest::Digest;
+
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Descriptor {
@@ -11,7 +13,7 @@ pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     mediatype: Option<String>,
 
-    digest:String, // FIXME: Should be proper digest type
+    digest: Digest,
 
     size: i64,
 
