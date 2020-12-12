@@ -1,5 +1,5 @@
-
 pub mod oci;
+pub mod image;
 
 #[cfg(test)]
 mod tests {
