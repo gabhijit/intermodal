@@ -10,5 +10,6 @@ fn main() {
         .version(crate_version!())
         .subcommand(image::cmd::add_subcmd_image())
         .get_matches();
-    println!("Hello World! {:?}", matches);
+
+    println!("{:?}", matches);
 }
