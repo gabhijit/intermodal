@@ -28,19 +28,19 @@ pub trait ImageTransport {
 
     fn parse_reference<'a>(&self, reference: &'a str) -> ImageResult<Box<dyn ImageReference>>;
 
-    fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
+    // fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
 }
 
 pub trait ImageReference {
     fn transport(&self) -> Box<dyn ImageTransport>;
 
-    fn string_within_transport(&self) -> String;
+    // fn string_within_transport(&self) -> String;
 
-    fn docker_reference(&self) -> Box<dyn NamedRef>;
+    // fn docker_reference(&self) -> Box<dyn NamedRef>;
 
-    fn policy_configuration_identity(&self) -> String;
+    // fn policy_configuration_identity(&self) -> String;
 
-    fn policy_configuration_namespaces(&self) -> Vec<String>;
+    // fn policy_configuration_namespaces(&self) -> Vec<String>;
 
     // FIXME: implement following methods
     // fn new_image<T>(&self) -> T;
