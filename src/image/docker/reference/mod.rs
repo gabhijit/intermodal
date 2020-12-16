@@ -9,3 +9,6 @@ struct DockerRepo {
     domain: String,
     path: String,
 }
+
+#[cfg(test)]
+mod tests;

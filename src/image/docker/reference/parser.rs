@@ -1,3 +1,5 @@
+#![macro_use]
+
 /// Docker Image reference handling
 ///
 ///
@@ -113,23 +115,23 @@ macro_rules! anchor_re {
 }
 
 lazy_static! {
-    static ref DOMAIN_COMPONENT_RE: Regex =
-        Regex::new(r"(?:[[:alnum:]]|[[:alnum:]][[:alnum:]]*[[:alnum:]])").unwrap();
-    static ref PORT_NO_RE: Regex = Regex::new(r"\d+").unwrap();
-    static ref LOWER_ALNUM_RE: Regex = Regex::new(r"[a-z0-9]+").unwrap();
-    static ref SEPERATOR_RE: Regex = Regex::new(r"[_.]|__|[-]").unwrap();
-    static ref TAG_RE: Regex = Regex::new(r"[\w][\w.-]{0,127}").unwrap();
+    pub(super) static ref DOMAIN_COMPONENT_RE: Regex =
+        Regex::new(r"([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])").unwrap();
+    pub(super) static ref PORT_NO_RE: Regex = Regex::new(r"\d+").unwrap();
+    pub(super) static ref LOWER_ALNUM_RE: Regex = Regex::new(r"[a-z0-9]+").unwrap();
+    pub(super) static ref SEPERATOR_RE: Regex = Regex::new(r"[_.]|__|[-]").unwrap();
+    pub(super) static ref TAG_RE: Regex = Regex::new(r"[\w][\w.-]{0,127}").unwrap();
 
     // Digest specific
-    static ref DIGEST_ALGO_SEP_RE: Regex = Regex::new(r"[+.-_]").unwrap();
-    static ref DIGEST_ALGO_COMP_RE: Regex = Regex::new(r"[[:alnum:]][[:alnum:]]*").unwrap();
-    static ref DIGEST_HEX_RE: Regex = Regex::new(r"[[:xdigit:]]{32,}").unwrap();
+    pub(super) static ref DIGEST_ALGO_SEP_RE: Regex = Regex::new(r"[+.-_]").unwrap();
+    pub(super) static ref DIGEST_ALGO_COMP_RE: Regex = Regex::new(r"[[:alnum:]][[:alnum:]]*").unwrap();
+    pub(super) static ref DIGEST_HEX_RE: Regex = Regex::new(r"[[:xdigit:]]{32,}").unwrap();
 
-    static ref ID_RE: Regex = Regex::new(r"[a-f0-9]{64}").unwrap();
-    static ref SHORT_ID_RE: Regex = Regex::new(r"[a-f0-9]{6, 64}").unwrap();
+    pub(super) static ref ID_RE: Regex = Regex::new(r"[a-f0-9]{64}").unwrap();
+    pub(super) static ref SHORT_ID_RE: Regex = Regex::new(r"[a-f0-9]{6, 64}").unwrap();
 
     // Composed regular expressions for repository types.
-    static ref DOMAIN_RE: Regex =
+    pub(super) static ref DOMAIN_RE: Regex =
         expression_re!(
             DOMAIN_COMPONENT_RE,
             optional_re!(
@@ -143,7 +145,7 @@ lazy_static! {
             )
         );
 
-    static ref PATH_COMPONENT_RE: Regex =
+    pub(super) static ref PATH_COMPONENT_RE: Regex =
         expression_re!(
             LOWER_ALNUM_RE,
             optional_re!(
@@ -152,7 +154,7 @@ lazy_static! {
             )
         );
 
-    static ref NAME_RE: Regex =
+    pub(super) static ref NAME_RE: Regex =
         expression_re!(
             optional_re!(
                 DOMAIN_RE,
@@ -167,15 +169,15 @@ lazy_static! {
             )
         );
 
-    static ref DIGEST_ALGO_RE: Regex =
+    pub(super) static ref DIGEST_ALGO_RE: Regex =
         expression_re!(
             DIGEST_ALGO_COMP_RE,
             optional_re!(repeated_re!( DIGEST_ALGO_SEP_RE, DIGEST_ALGO_COMP_RE))
         );
 
-    static ref DIGEST_RE: Regex = expression_re!(DIGEST_ALGO_RE, literal_re(":"), DIGEST_HEX_RE);
+    pub(super) static ref DIGEST_RE: Regex = expression_re!(DIGEST_ALGO_RE, literal_re(":"), DIGEST_HEX_RE);
 
-    static ref REFERENCE_RE: Regex =
+    pub(super) static ref REFERENCE_RE: Regex =
         expression_re!(
             NAME_RE,
             optional_re!(literal_re(":"), TAG_RE),
@@ -183,59 +185,6 @@ lazy_static! {
         );
 }
 
-fn literal_re(l: &str) -> Regex {
+pub(super) fn literal_re(l: &str) -> Regex {
     Regex::new(&String::from(escape(l))).unwrap()
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use regex::Regex;
-
-    #[test]
-    fn test_expression_re() {
-        let composite = expression_re!(Regex::new("a").unwrap(), Regex::new("b").unwrap());
-        assert_eq!(composite.to_string(), "ab");
-    }
-
-    #[test]
-    fn test_group_re() {
-        let group = group_re!(Regex::new("a").unwrap(), Regex::new("b").unwrap());
-        assert_eq!(group.to_string(), "(?:ab)");
-    }
-
-    #[test]
-    fn test_repeated_re() {
-        let optional = repeated_re!(Regex::new("a").unwrap(), Regex::new("b").unwrap());
-        assert_eq!(optional.to_string(), "(?:ab)+");
-    }
-
-    #[test]
-    fn test_optional_re() {
-        let optional = optional_re!(Regex::new("a").unwrap(), Regex::new("b").unwrap());
-        assert_eq!(optional.to_string(), "(?:ab)?");
-    }
-
-    #[test]
-    fn test_anchor_re() {
-        let anchor = anchor_re!(Regex::new("a").unwrap(), Regex::new("b").unwrap());
-        assert_eq!(anchor.to_string(), "^ab$");
-    }
-
-    #[test]
-    fn test_capture_re() {
-        let capture = capture_re!(
-            Regex::new("a").unwrap(),
-            Regex::new("b").unwrap(),
-            Regex::new("c").unwrap()
-        );
-        assert_eq!(capture.to_string(), "(abc)");
-    }
-
-    #[test]
-    fn test_literal_re() {
-        let s = literal_re("$?");
-        assert_eq!(s.to_string(), r"\$\?");
-    }
 }
