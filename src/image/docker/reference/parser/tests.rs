@@ -1,5 +1,5 @@
-use super::parser::*;
-use regex::Regex;
+use super::*;
+use regex::{Captures, Regex};
 
 #[test]
 fn test_expression_re() {
@@ -154,4 +154,15 @@ fn test_domain_regexps() {
             tc.case
         );
     }
+}
+
+#[test]
+fn test_name_regexps() {
+    struct _NameTC<'a> {
+        name: &'a str,
+        result: bool,
+        captures_len: Option<usize>,
+    }
+
+    assert!(true);
 }
