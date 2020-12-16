@@ -116,7 +116,7 @@ macro_rules! anchor_re {
 
 lazy_static! {
      static ref DOMAIN_COMPONENT_RE: Regex =
-        Regex::new(r"([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])").unwrap();
+        Regex::new(r"(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])").unwrap();
      static ref PORT_NO_RE: Regex = Regex::new(r"\d+").unwrap();
      static ref LOWER_ALNUM_RE: Regex = Regex::new(r"[a-z0-9]+").unwrap();
      static ref SEPERATOR_RE: Regex = Regex::new(r"[_.]|__|[-]").unwrap();
@@ -157,14 +157,16 @@ lazy_static! {
      static ref NAME_RE: Regex =
         expression_re!(
             optional_re!(
-                DOMAIN_RE,
+                capture_re!(DOMAIN_RE),
                 literal_re("/")
             ),
-            PATH_COMPONENT_RE,
-            optional_re!(
-                repeated_re!(
-                    literal_re("/"),
-                    PATH_COMPONENT_RE
+            capture_re!(
+                PATH_COMPONENT_RE,
+                optional_re!(
+                    repeated_re!(
+                        literal_re("/"),
+                        PATH_COMPONENT_RE
+                    )
                 )
             )
         );

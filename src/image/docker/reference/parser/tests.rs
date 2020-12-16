@@ -1,5 +1,5 @@
 use super::*;
-use regex::{Captures, Regex};
+use regex::Regex;
 
 #[test]
 fn test_expression_re() {
@@ -158,11 +158,61 @@ fn test_domain_regexps() {
 
 #[test]
 fn test_name_regexps() {
-    struct _NameTC<'a> {
+    struct NameTC<'a> {
         name: &'a str,
         result: bool,
         captures_len: Option<usize>,
+        groups: Vec<&'a str>,
     }
 
-    assert!(true);
+    let test_cases = vec![
+        NameTC {
+            name: "",
+            result: false,
+            captures_len: None,
+            groups: vec![],
+        },
+        NameTC {
+            name: "short",
+            result: true,
+            captures_len: Some(3),
+            groups: vec!["", "short"],
+        },
+        NameTC {
+            name: "simple/short",
+            result: true,
+            captures_len: Some(3),
+            groups: vec!["simple", "short"],
+        },
+    ];
+
+    let anchored = anchor_re!(NAME_RE);
+    for tc in test_cases {
+        let result = anchored.captures(tc.name);
+        match result {
+            Some(n) => {
+                assert_eq!(
+                    n.len(),
+                    tc.captures_len.unwrap(),
+                    "regex: {}",
+                    anchored.as_str()
+                );
+                assert_eq!(
+                    n.get(1).map_or("", |m| m.as_str()),
+                    tc.groups[0],
+                    "expected: {}, found: {}",
+                    tc.groups[0],
+                    n.get(1).map_or("", |m| m.as_str()),
+                );
+                assert_eq!(
+                    n.get(2).map_or("", |m| m.as_str()),
+                    tc.groups[1],
+                    "expected: {}, found: {}",
+                    tc.groups[1],
+                    n.get(2).map_or("z", |m| m.as_str()),
+                );
+            }
+            None => assert_eq!(None, tc.captures_len),
+        }
+    }
 }
