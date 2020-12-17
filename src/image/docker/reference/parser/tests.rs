@@ -66,7 +66,7 @@ fn test_domain_regexps() {
         case: &'a str,
         result: bool,
     }
-    let test_cases = vec![
+    let mut test_cases = vec![
         DomainTC {
             case: "test.com",
             result: true,
@@ -161,58 +161,382 @@ fn test_name_regexps() {
     struct NameTC<'a> {
         name: &'a str,
         result: bool,
-        captures_len: Option<usize>,
         groups: Vec<&'a str>,
     }
 
-    let test_cases = vec![
+    let mut test_cases = vec![
         NameTC {
             name: "",
             result: false,
-            captures_len: None,
             groups: vec![],
         },
         NameTC {
             name: "short",
             result: true,
-            captures_len: Some(3),
             groups: vec!["", "short"],
         },
         NameTC {
             name: "simple/short",
             result: true,
-            captures_len: Some(3),
             groups: vec!["simple", "short"],
+        },
+        NameTC {
+            name: "library/ubuntu",
+            result: true,
+            groups: vec!["library", "ubuntu"],
+        },
+        NameTC {
+            name: "docker/hyphenos/app",
+            result: true,
+            groups: vec!["docker", "hyphenos/app"],
+        },
+        NameTC {
+            name: "aa/aa/aa/aa/aa/aa/bb/bb",
+            result: true,
+            groups: vec!["aa", "aa/aa/aa/aa/aa/bb/bb"],
+        },
+        NameTC {
+            name: "a/a/a/a/a",
+            result: true,
+            groups: vec!["a", "a/a/a/a"],
+        },
+        NameTC {
+            name: "a/a/a/a/a/",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "a//a/a",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "foo.com",
+            result: true,
+            groups: vec!["", "foo.com"],
+        },
+        NameTC {
+            name: "foo.com/",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "foo.com:8080/bar",
+            result: true,
+            groups: vec!["foo.com:8080", "bar"],
+        },
+        NameTC {
+            name: "foo.com:http/bar",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "foo.com/",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "foo.com:8080/bar",
+            result: true,
+            groups: vec!["foo.com:8080", "bar"],
+        },
+        NameTC {
+            name: "foo.com:8080/bar/baz",
+            result: true,
+            groups: vec!["foo.com:8080", "bar/baz"],
+        },
+        NameTC {
+            name: "a^a",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "aa/aa$$^a/a",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "aaaa$$^a/aa",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "___/___",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "_docker/docker_",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "docker/docker_.",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "docker/docker_.new",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "d..ocker/docker",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "d..ocker",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "docker.io/docker.new",
+            result: true,
+            groups: vec!["docker.io", "docker.new"],
+        },
+        NameTC {
+            name: "docker.io/some_seperator_with__double.dot-hyphen",
+            result: true,
+            groups: vec!["docker.io", "some_seperator_with__double.dot-hyphen"],
+        },
+        NameTC {
+            name: "registry.io/foo/project--id.module--name.ver---sion--name",
+            result: true,
+            groups: vec![
+                "registry.io",
+                "foo/project--id.module--name.ver---sion--name",
+            ],
+        },
+        NameTC {
+            name: "d__ocker/docker",
+            result: true,
+            groups: vec!["", "d__ocker/docker"],
+        },
+        NameTC {
+            name: "d__ocker:8080/docker",
+            result: false,
+            groups: vec![],
+        },
+        NameTC {
+            name: "Docker.com:8080/docker",
+            result: true,
+            groups: vec!["Docker.com:8080", "docker"],
+        },
+        NameTC {
+            name: "Docker/Docker.image",
+            result: false,
+            groups: vec![],
         },
     ];
 
-    let anchored = anchor_re!(NAME_RE);
+    let mut long_slashes_path_string = "a/".repeat(127);
+    long_slashes_path_string.push_str("a");
+
+    let mut long_slashes_input_string = "a/".repeat(128);
+    long_slashes_input_string.push_str("a");
+
+    let long_slashes_tc = NameTC {
+        name: &long_slashes_input_string,
+        result: true,
+        groups: vec!["a", &long_slashes_path_string],
+    };
+    test_cases.push(long_slashes_tc);
+
+    let anchored = anchor_re!(CAPTURING_NAME_RE);
     for tc in test_cases {
-        let result = anchored.captures(tc.name);
-        match result {
-            Some(n) => {
+        let captures = anchored.captures(tc.name);
+        match captures {
+            Some(c) => {
+                assert_eq!(c.len(), 3, "regex: {}", anchored.as_str());
                 assert_eq!(
-                    n.len(),
-                    tc.captures_len.unwrap(),
-                    "regex: {}",
-                    anchored.as_str()
-                );
-                assert_eq!(
-                    n.get(1).map_or("", |m| m.as_str()),
+                    c.get(1).map_or("", |m| m.as_str()),
                     tc.groups[0],
                     "expected: {}, found: {}",
                     tc.groups[0],
-                    n.get(1).map_or("", |m| m.as_str()),
+                    c.get(1).map_or("", |m| m.as_str()),
                 );
                 assert_eq!(
-                    n.get(2).map_or("", |m| m.as_str()),
+                    c.get(2).map_or("", |m| m.as_str()),
                     tc.groups[1],
                     "expected: {}, found: {}",
                     tc.groups[1],
-                    n.get(2).map_or("z", |m| m.as_str()),
+                    c.get(2).map_or("", |m| m.as_str()),
                 );
             }
-            None => assert_eq!(None, tc.captures_len),
+            None => assert_eq!(
+                tc.result,
+                false,
+                "failed for string: {}, regex: {}",
+                tc.name,
+                anchored.as_str()
+            ),
         }
+    }
+}
+
+#[test]
+fn test_reference_regexpes() {
+    struct RefTC<'a> {
+        reference: &'a str,
+        result: bool,
+        groups: Vec<&'a str>,
+    }
+
+    let test_cases = vec![
+        RefTC {
+            reference: "registry.com:8080/myapp:tag",
+            result: true,
+            groups: vec!["registry.com:8080/myapp", "tag", ""],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: true,
+            groups: vec!["registry.com:8080/myapp", "", "sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912"],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp:mytag2@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: true,
+            groups: vec!["registry.com:8080/myapp", "mytag2", "sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912"],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp@sha256:badbadbadbad",
+            result: false,
+            groups: vec![],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp:invalid~tag",
+            result: false,
+            groups: vec![],
+        },
+        RefTC {
+            reference: "bad_hostname.com:8080/myapp:tag",
+            result: false,
+            groups: vec![],
+        },
+        RefTC {
+            reference: "localhost:8080@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: true,
+            groups: vec!["localhost", "8080", "sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912"],
+        },
+        RefTC {
+            reference: "localhost:8080/name@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: true,
+            groups: vec!["localhost:8080/name", "", "sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912"],
+        },
+        RefTC {
+            reference: "localhost:http/name@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: false,
+            groups: vec![]
+        },
+        RefTC {
+            reference: "localhost@sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912",
+            result: true,
+            groups: vec!["localhost", "", "sha256:be178c0543eb17f5f3043021c9e5fcf30285e557a4fc309cce97ff9ca6182912"],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp@bad",
+            result: false,
+            groups: vec![],
+        },
+        RefTC {
+            reference: "registry.com:8080/myapp@2bad",
+            result: false,
+            groups: vec![],
+        },
+    ];
+
+    let anchored = anchor_re!(REFERENCE_RE);
+    for tc in test_cases {
+        let captures = anchored.captures(tc.reference);
+        match captures {
+            Some(c) => {
+                assert_eq!(c.len(), 4, "regex: {}", anchored.as_str());
+                assert_eq!(
+                    c.get(1).map_or("", |m| m.as_str()),
+                    tc.groups[0],
+                    "expected: {}, found: {}",
+                    tc.groups[0],
+                    c.get(1).map_or("", |m| m.as_str()),
+                );
+                assert_eq!(
+                    c.get(2).map_or("", |m| m.as_str()),
+                    tc.groups[1],
+                    "expected: {}, found: {}",
+                    tc.groups[1],
+                    c.get(2).map_or("", |m| m.as_str()),
+                );
+                assert_eq!(
+                    c.get(3).map_or("", |m| m.as_str()),
+                    tc.groups[2],
+                    "expected: {}, found: {}",
+                    tc.groups[2],
+                    c.get(3).map_or("", |m| m.as_str()),
+                );
+            }
+            None => assert_eq!(
+                tc.result,
+                false,
+                "failed for string: {}, regex: {}",
+                tc.reference,
+                anchored.as_str()
+            ),
+        }
+    }
+}
+
+#[test]
+fn test_identifier_regexps() {
+    struct StructID<'a> {
+        id: &'a str,
+        result: bool,
+    }
+
+    let mut test_cases = vec![
+        StructID {
+            id: "da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf9821",
+            result: true,
+        },
+        StructID {
+            id: "7EC43B381E5AEFE6E04EFB0B3F0693FF2A4A50652D64AEC573905F2DB5889A1C",
+            result: false,
+        },
+        StructID {
+            id: "da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf",
+            result: false,
+        },
+        StructID {
+            id: "sha256:da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf9821",
+            result: false,
+        },
+        StructID {
+            id: "da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf98218482",
+            result: false,
+        },
+    ];
+
+    for tc in test_cases {
+        let anchored = anchor_re!(ID_RE);
+        assert_eq!(anchored.is_match(tc.id), tc.result);
+    }
+
+    let short_test_cases = vec![
+        StructID {
+            id: "abcde",
+            result: false,
+        },
+        StructID {
+            id: "abc2de",
+            result: true,
+        },
+        StructID {
+            id: "da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf",
+            result: true,
+        },
+    ];
+
+    for tc in short_test_cases {
+        let anchored = anchor_re!(SHORT_ID_RE);
+        assert_eq!(anchored.is_match(tc.id), tc.result);
     }
 }
