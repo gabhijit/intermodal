@@ -2,16 +2,16 @@ use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
 
-type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
-type DockerRepoResult = Result<DockerRepo, DockerReferenceError>;
+pub type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
+pub type DockerRepoResult = Result<DockerRepo, DockerReferenceError>;
 
 pub struct DockerReference {
-    repo: DockerRepo,
-    tag: String,
-    digest: Digest,
+    pub(super) repo: DockerRepo,
+    pub(super) tag: String,
+    pub(super) digest: Option<Digest>,
 }
 
 pub struct DockerRepo {
-    domain: String, // Domain where the Repo is hosted.
-    path: String,   // Path within the Repo sans Tag
+    pub(super) domain: String, // Domain where the Repo is hosted.
+    pub(super) path: String,   // Path within the Repo sans Tag
 }

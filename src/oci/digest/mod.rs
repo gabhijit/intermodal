@@ -14,6 +14,22 @@ pub struct Digest {
 
 struct DigestVisitor;
 
+impl Digest {
+    // FIXME: We assume, passed string is a valid digest, usually callers will ensure
+
+    pub fn from_str<'a>(s: &'a str) -> Option<Self> {
+        let tokens: Vec<&str> = s.split(":").collect();
+        if tokens.len() == 2 {
+            return Some(Digest {
+                algorithm: String::from(*tokens.get(0).unwrap()),
+                hex_digest: String::from(*tokens.get(1).unwrap()),
+            });
+        };
+
+        None
+    }
+}
+
 impl<'de> Visitor<'de> for DigestVisitor {
     type Value = Digest;
 

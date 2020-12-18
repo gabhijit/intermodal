@@ -192,6 +192,9 @@ lazy_static! {
             optional_re!(literal_re(":"), capture_re!(TAG_RE)),
             optional_re!(literal_re("@"), capture_re!(DIGEST_RE))
         );
+
+     pub(super) static ref ANCHORED_REFERENCE_RE: Regex = anchor_re!(REFERENCE_RE);
+     pub(super) static ref ANCHORED_CAPTURING_NAME_RE: Regex = anchor_re!(CAPTURING_NAME_RE);
 }
 
 fn literal_re(l: &str) -> Regex {

@@ -1,3 +1,6 @@
+use std::error::Error;
+use std::fmt;
+
 #[derive(Debug)]
 pub enum DockerReferenceError {
     InvalidFormatError,
@@ -6,6 +9,9 @@ pub enum DockerReferenceError {
     EmptyNameError,
     NameTooLongError,
     NameNotCanonicalError,
+
+    // Unknown Error
+    UnknownDockerReferenceError,
 }
 
 impl fmt::Display for DockerReferenceError {
@@ -19,7 +25,10 @@ impl fmt::Display for DockerReferenceError {
             DockerReferenceError::NameNotCanonicalError => {
                 write!(f, "Reference Name Not Canonical!")
             }
+            DockerReferenceError::UnknownDockerReferenceError => {
+                write!(f, "Unknown Error occurred!")
+            }
         }
     }
 }
-impl Error for ImageError {}
+impl Error for DockerReferenceError {}
