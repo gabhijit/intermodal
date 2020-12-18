@@ -18,13 +18,3 @@ impl fmt::Display for ImageError {
     }
 }
 impl Error for ImageError {}
-
-#[derive(Debug)]
-pub enum ReferenceError {
-    InvalidFormatError(String),
-    InvalidTagError(String),
-    InvalidDigestError(String),
-    EmptyNameError(String),
-    NameTooLongError(String),
-    NameNotCanonicalError(String),
-}
