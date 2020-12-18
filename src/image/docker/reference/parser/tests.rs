@@ -385,6 +385,11 @@ fn test_reference_regexpes() {
 
     let test_cases = vec![
         RefTC {
+            reference: "fedora",
+            result: true,
+            groups: vec!["fedora", "", ""],
+        },
+        RefTC {
             reference: "registry.com:8080/myapp:tag",
             result: true,
             groups: vec!["registry.com:8080/myapp", "tag", ""],

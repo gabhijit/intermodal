@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum DockerReferenceError {
     InvalidFormatError,
     InvalidTagError,
