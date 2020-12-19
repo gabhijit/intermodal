@@ -1,3 +1,4 @@
+use crate::image::docker::transport::DockerTransport;
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
@@ -7,6 +8,8 @@ use super::types::{DockerReference, DockerReferenceResult, DockerRepo};
 const DEFAULT_DOCKER_DOMAIN: &str = "docker.io";
 const DEFAULT_DOCKER_IMGNAME_PREFIX: &str = "library";
 const DEFAULT_TAG: &str = "latest";
+const MAX_REFNAME_LEN: usize = 256;
+
 ///
 /// Given an input as a string, return a DockerReference Structure or a DockerReference Error
 ///
@@ -19,9 +22,12 @@ const DEFAULT_TAG: &str = "latest";
 /// Note: Converting 'docker.io' to actual Domain Name is taken care of by Docker Client.
 ///
 pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
-    let captured_ref = ANCHORED_REFERENCE_RE.captures(input_ref);
+    if input_ref.len() == 0 {
+        return Err(DockerReferenceError::EmptyNameError);
+    }
 
     let (mut name, mut tag, digest): (String, String, &str);
+    let captured_ref = ANCHORED_REFERENCE_RE.captures(input_ref);
     match captured_ref {
         Some(c) => {
             if c.len() != 4 {
@@ -56,6 +62,10 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
                         path_name.insert_str(0, DEFAULT_DOCKER_IMGNAME_PREFIX);
                     }
 
+                    if path_name.len() > MAX_REFNAME_LEN {
+                        return Err(DockerReferenceError::NameTooLongError);
+                    }
+
                     if tag.len() == 0 {
                         tag = String::from(DEFAULT_TAG);
                     }
@@ -68,6 +78,7 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
                         tag: tag,
                         digest: Digest::from_str(digest),
                         input_ref: String::from(input_ref),
+                        transport: DockerTransport::singleton(),
                     });
                 }
                 None => {
@@ -90,10 +101,10 @@ mod tests {
     fn test_parse_success_simple() {
         struct ParseTC<'a> {
             input_ref: &'a str,
-            output_ref_result: DockerReferenceResult,
+            output_ref_result: DockerReferenceResult<'a>,
         }
 
-        let test_cases = vec![
+        let mut test_cases = vec![
             ParseTC {
                 input_ref: "fedora",
                 output_ref_result: Ok(DockerReference {
@@ -104,6 +115,7 @@ mod tests {
                     tag: String::from("latest"),
                     digest: None,
                     input_ref: String::from("fedora"),
+                    transport: DockerTransport::singleton(),
                 }),
             },
             ParseTC {
@@ -116,9 +128,22 @@ mod tests {
                     tag: String::from("f32"),
                     digest: None,
                     input_ref: String::from("fedora:f32"),
+                    transport: DockerTransport::singleton(),
                 }),
             },
+            ParseTC {
+                input_ref: "",
+                output_ref_result: Err(DockerReferenceError::EmptyNameError),
+            },
         ];
+
+        let mut really_long_refname = "0a".repeat(124);
+        really_long_refname.push_str("a");
+        let really_long_name_tc = ParseTC {
+            input_ref: &really_long_refname,
+            output_ref_result: Err(DockerReferenceError::NameTooLongError),
+        };
+        test_cases.push(really_long_name_tc);
 
         for tc in test_cases {
             let result = parse(tc.input_ref);

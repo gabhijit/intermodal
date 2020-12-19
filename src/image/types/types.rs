@@ -1,38 +1,15 @@
 use super::errors::ImageResult;
-use crate::oci::digest::Digest;
-
-pub trait Reference {
-    fn string(&self) -> String;
-}
-
-pub trait Named {
-    fn name(&self) -> String;
-}
-
-pub trait Tagged {
-    fn tag(&self) -> String;
-}
-
-pub trait NamedRef: Named + Reference {}
-
-pub trait TaggedRef: Tagged + Reference {}
-
-pub trait NamedTaggedRef: Named + Tagged + Reference {}
-
-pub trait Digested {
-    fn digest(&self) -> Digest;
-}
 
 pub trait ImageTransport {
     fn name(&self) -> String;
 
-    fn parse_reference<'a>(&self, reference: &'a str) -> ImageResult<Box<dyn ImageReference>>;
+    fn parse_reference<'s>(&self, reference: &'s str) -> ImageResult<Box<dyn ImageReference + 's>>;
 
     // fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
 }
 
 pub trait ImageReference {
-    fn transport(&self) -> Box<dyn ImageTransport>;
+    fn transport<'it>(&'it self) -> Box<&(dyn ImageTransport + 'it)>;
 
     // fn string_within_transport(&self) -> String;
 

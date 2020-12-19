@@ -1,18 +1,24 @@
-use std::fmt::Display;
-
+use crate::image::docker::transport::DockerTransport;
+use crate::image::types::{ImageReference, ImageTransport};
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
 
-pub type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
-pub type DockerRepoResult = Result<DockerRepo, DockerReferenceError>;
+pub type DockerReferenceResult<'a> = Result<DockerReference<'a>, DockerReferenceError>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DockerReference {
+pub struct DockerReference<'a> {
+    pub(super) transport: &'a DockerTransport<'a>,
     pub(super) repo: DockerRepo,
     pub(super) tag: String,
     pub(super) digest: Option<Digest>,
     pub(super) input_ref: String, // The string that was originally sent to us
+}
+
+impl<'a> ImageReference for DockerReference<'a> {
+    fn transport(&self) -> Box<&(dyn ImageTransport + '_)> {
+        Box::new(self.transport)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

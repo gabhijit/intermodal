@@ -1,28 +1,43 @@
 use std::boxed::Box;
 use std::string::String;
 
-use crate::image::types::{ImageReference, ImageResult, ImageTransport};
+use crate::image::docker::reference::api::parse;
 
-pub(in crate::image) fn get_docker_transport() -> (String, Box<dyn ImageTransport>) {
-    (String::from("docker"), Box::new(DockerTransport {}))
+use crate::image::types::{ImageError, ImageReference, ImageResult, ImageTransport};
+
+pub(crate) static DOCKER_TRANSPORT_NAME: &str = "docker";
+pub(crate) static DOCKER_TRANSPORT: DockerTransport = DockerTransport {
+    name: DOCKER_TRANSPORT_NAME,
+};
+
+pub(in crate::image) fn get_docker_transport<'s>() -> (String, Box<&'s (dyn ImageTransport)>) {
+    (
+        String::from(DOCKER_TRANSPORT_NAME),
+        Box::new(&DOCKER_TRANSPORT),
+    )
 }
 
-pub(in crate::image) struct DockerTransport {}
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct DockerTransport<'a> {
+    pub(crate) name: &'a str,
+}
 
-impl ImageTransport for DockerTransport {
+impl<'a> DockerTransport<'_> {
+    pub(crate) fn singleton() -> &'static Self {
+        &DOCKER_TRANSPORT
+    }
+}
+
+impl<'a> ImageTransport for DockerTransport<'a> {
     fn name(&self) -> String {
-        String::from("docker")
+        String::from(self.name)
     }
 
-    fn parse_reference<'a>(&self, reference: &'a str) -> ImageResult<Box<dyn ImageReference>> {
-        Ok(Box::new(DockerReference {}))
-    }
-}
-
-pub(in crate::image) struct DockerReference {}
-
-impl ImageReference for DockerReference {
-    fn transport(&self) -> Box<dyn ImageTransport> {
-        Box::new(DockerTransport {})
+    fn parse_reference<'s>(&self, reference: &'s str) -> ImageResult<Box<dyn ImageReference + 's>> {
+        let result = parse(reference);
+        match result {
+            Ok(r) => Ok(Box::new(r)),
+            Err(_) => Err(ImageError::ReferenceError), // FIXME: May be give a detailed error later
+        }
     }
 }
