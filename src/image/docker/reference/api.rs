@@ -21,8 +21,8 @@ const MAX_REFNAME_LEN: usize = 256;
 ///
 /// Note: Converting 'docker.io' to actual Domain Name is taken care of by Docker Client.
 ///
-pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
-    if input_ref.len() == 0 {
+pub fn parse(input_ref: &str) -> DockerReferenceResult {
+    if input_ref.is_empty() {
         return Err(DockerReferenceError::EmptyNameError);
     }
 
@@ -35,7 +35,7 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
             }
 
             name = String::from(c.get(1).map_or("", |m| m.as_str()));
-            if name.len() == 0 {
+            if name.is_empty() {
                 return Err(DockerReferenceError::EmptyNameError);
             }
 
@@ -52,12 +52,12 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
                     }
 
                     domain = String::from(cn.get(1).map_or("", |m| m.as_str()));
-                    if domain.len() == 0 {
+                    if domain.is_empty() {
                         domain = String::from(DEFAULT_DOCKER_DOMAIN);
                     }
 
                     path_name = String::from(cn.get(2).map_or("", |m| m.as_str()));
-                    if let None = path_name.find("/") {
+                    if path_name.find('/').is_none() {
                         path_name.insert(0, '/');
                         path_name.insert_str(0, DEFAULT_DOCKER_IMGNAME_PREFIX);
                     }
@@ -66,30 +66,26 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
                         return Err(DockerReferenceError::NameTooLongError);
                     }
 
-                    if tag.len() == 0 {
+                    if tag.is_empty() {
                         tag = String::from(DEFAULT_TAG);
                     }
 
-                    return Ok(DockerReference {
+                    Ok(DockerReference {
                         repo: DockerRepo {
-                            domain: domain,
+                            domain,
                             path: path_name,
                         },
-                        tag: tag,
+                        tag,
                         digest: Digest::from_str(digest),
                         input_ref: String::from(input_ref),
                         transport: DockerTransport::singleton(),
-                    });
+                    })
                 }
-                None => {
-                    return Err(DockerReferenceError::NameNotCanonicalError);
-                }
-            };
+                None => Err(DockerReferenceError::NameNotCanonicalError),
+            }
         }
-        None => {
-            return Err(DockerReferenceError::InvalidFormatError);
-        }
-    };
+        None => Err(DockerReferenceError::InvalidFormatError),
+    }
 }
 
 #[cfg(test)]

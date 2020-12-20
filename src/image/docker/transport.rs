@@ -1,3 +1,4 @@
+#![allow(clippy::redundant_allocation)]
 use std::boxed::Box;
 use std::string::String;
 

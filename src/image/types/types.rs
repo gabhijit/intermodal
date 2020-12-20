@@ -9,6 +9,7 @@ pub trait ImageTransport {
 }
 
 pub trait ImageReference {
+    #![allow(clippy::redundant_allocation)]
     fn transport<'it>(&'it self) -> Box<&(dyn ImageTransport + 'it)>;
 
     // fn string_within_transport(&self) -> String;

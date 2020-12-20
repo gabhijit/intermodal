@@ -69,30 +69,30 @@ pub struct Manifest {
     annotations: Option<HashMap<String, String>>,
 }
 
-pub const MediaTypeDescriptor: &'static str = "application/vnd.oci.descriptor.v1+json";
+pub const MediaTypeDescriptor: &str = "application/vnd.oci.descriptor.v1+json";
 
-pub const MediaTypeLayoutHeader: &'static str = "application/vnd.oci.layout.header.v1+json";
+pub const MediaTypeLayoutHeader: &str = "application/vnd.oci.layout.header.v1+json";
 
-pub const MediaTypeImageManifest: &'static str = "application/vnd.oci.image.manifest.v1+json";
+pub const MediaTypeImageManifest: &str = "application/vnd.oci.image.manifest.v1+json";
 
-pub const MediaTypeImageIndex: &'static str = "application/vnd.oci.image.index.v1+json";
+pub const MediaTypeImageIndex: &str = "application/vnd.oci.image.index.v1+json";
 
-pub const MediaTypeImageLayer: &'static str = "application/vnd.oci.image.layer.v1.tar";
+pub const MediaTypeImageLayer: &str = "application/vnd.oci.image.layer.v1.tar";
 
-pub const MediaTypeImageLayerGzip: &'static str = "application/vnd.oci.image.layer.v1.tar+gzip";
+pub const MediaTypeImageLayerGzip: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
 
-pub const MediaTypeImageLayerZstd: &'static str = "application/vnd.oci.image.layer.v1.tar+zstd";
+pub const MediaTypeImageLayerZstd: &str = "application/vnd.oci.image.layer.v1.tar+zstd";
 
-pub const MediaTypeImageLayerNonDistributable: &'static str =
+pub const MediaTypeImageLayerNonDistributable: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar";
 
-pub const MediaTypeImageLayerNonDistributableGzip: &'static str =
+pub const MediaTypeImageLayerNonDistributableGzip: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip";
 
-pub const MediaTypeImageLayerNonDistributableZstd: &'static str =
+pub const MediaTypeImageLayerNonDistributableZstd: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar+zstd";
 
-pub const MediaTypeImageConfig: &'static str = "application/vnd.oci.image.config.v1+json";
+pub const MediaTypeImageConfig: &str = "application/vnd.oci.image.config.v1+json";
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageConfig {
