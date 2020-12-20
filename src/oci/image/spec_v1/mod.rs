@@ -1,4 +1,4 @@
-#[allow(non_upper_case_globals)]
+#![allow(non_upper_case_globals)]
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -22,8 +22,8 @@ pub(crate) struct DockerTransport<'a> {
     pub(crate) name: &'a str,
 }
 
-impl<'a> DockerTransport<'_> {
-    pub(crate) fn singleton() -> &'static Self {
+impl<'a> DockerTransport<'a> {
+    pub(crate) fn singleton() -> &'a Self {
         &DOCKER_TRANSPORT
     }
 }

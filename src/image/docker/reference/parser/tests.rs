@@ -66,7 +66,7 @@ fn test_domain_regexps() {
         case: &'a str,
         result: bool,
     }
-    let mut test_cases = vec![
+    let test_cases = vec![
         DomainTC {
             case: "test.com",
             result: true,
@@ -497,7 +497,7 @@ fn test_identifier_regexps() {
         result: bool,
     }
 
-    let mut test_cases = vec![
+    let test_cases = vec![
         StructID {
             id: "da304e823d8ca2b9d863a3c897baeb852ba21ea9a9f1414736394ae7fcaf9821",
             result: true,

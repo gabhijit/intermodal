@@ -26,7 +26,7 @@ pub fn parse<'a>(input_ref: &'a str) -> DockerReferenceResult {
         return Err(DockerReferenceError::EmptyNameError);
     }
 
-    let (mut name, mut tag, digest): (String, String, &str);
+    let (name, mut tag, digest): (String, String, &str);
     let captured_ref = ANCHORED_REFERENCE_RE.captures(input_ref);
     match captured_ref {
         Some(c) => {
