@@ -76,7 +76,7 @@ pub fn parse(input_ref: &str) -> DockerReferenceResult {
                             path: path_name,
                         },
                         tag,
-                        digest: Digest::from_str(digest),
+                        digest: Digest::new_from_str(digest),
                         input_ref: String::from(input_ref),
                         transport: DockerTransport::singleton(),
                     })

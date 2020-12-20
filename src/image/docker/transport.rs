@@ -4,7 +4,8 @@ use std::string::String;
 
 use crate::image::docker::reference::api::parse;
 
-use crate::image::types::{ImageError, ImageReference, ImageResult, ImageTransport};
+use crate::image::types::errors::ImageError;
+use crate::image::types::{ImageReference, ImageResult, ImageTransport};
 
 pub(crate) static DOCKER_TRANSPORT_NAME: &str = "docker";
 pub(crate) static DOCKER_TRANSPORT: DockerTransport = DockerTransport {

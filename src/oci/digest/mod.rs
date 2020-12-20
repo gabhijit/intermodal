@@ -1,10 +1,13 @@
 // Implementation of Digest type
 
+use std::error::Error;
+use std::fmt::{self, Display, Formatter};
+use std::str::FromStr;
+use std::string::String;
+
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use std::string::String;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct Digest {
@@ -12,12 +15,27 @@ pub struct Digest {
     hex_digest: String,
 }
 
+#[derive(Debug)]
+pub enum DigestError {
+    DigestParseError,
+}
+
+impl Display for DigestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match *self {
+            DigestError::DigestParseError => write!(f, "Error in Parsing Digest From String"),
+        }
+    }
+}
+
+impl Error for DigestError {}
+
 struct DigestVisitor;
 
 impl Digest {
     // FIXME: We assume, passed string is a valid digest, usually callers will ensure
 
-    pub fn from_str<'a>(s: &'a str) -> Option<Self> {
+    pub fn new_from_str(s: &str) -> Option<Self> {
         let tokens: Vec<&str> = s.split(':').collect();
         if tokens.len() == 2 {
             return Some(Digest {
@@ -33,7 +51,7 @@ impl Digest {
 impl<'de> Visitor<'de> for DigestVisitor {
     type Value = Digest;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
         write!(formatter, "a string representing an OCI Digest.")
     }
 
@@ -73,6 +91,28 @@ impl Serialize for Digest {
         out.push_str(&self.hex_digest);
 
         serializer.serialize_str(&out)
+    }
+}
+
+impl Display for Digest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.algorithm, self.hex_digest)
+    }
+}
+
+impl FromStr for Digest {
+    type Err = DigestError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let tokens: Vec<&str> = s.split(':').collect();
+        if tokens.len() == 2 {
+            return Ok(Digest {
+                algorithm: String::from(*tokens.get(0).unwrap()),
+                hex_digest: String::from(*tokens.get(1).unwrap()),
+            });
+        }
+
+        Err(DigestError::DigestParseError)
     }
 }
 
