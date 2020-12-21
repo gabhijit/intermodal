@@ -1,4 +1,4 @@
-pub mod api;
+pub(crate) mod api;
 mod errors;
 mod parser;
-mod types;
+pub(crate) mod types;

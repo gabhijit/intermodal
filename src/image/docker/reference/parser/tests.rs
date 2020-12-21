@@ -449,6 +449,11 @@ fn test_reference_regexpes() {
             result: false,
             groups: vec![],
         },
+        RefTC {
+            reference: "",
+            result: false,
+            groups: vec![],
+        },
     ];
 
     let anchored = anchor_re!(REFERENCE_RE);

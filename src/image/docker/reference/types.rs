@@ -4,10 +4,10 @@ use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
 
-pub type DockerReferenceResult<'a> = Result<DockerReference<'a>, DockerReferenceError>;
+pub(crate) type DockerReferenceResult<'a> = Result<DockerReference<'a>, DockerReferenceError>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DockerReference<'a> {
+pub(crate) struct DockerReference<'a> {
     pub(super) transport: &'a DockerTransport<'a>,
     pub(super) repo: DockerRepo,
     pub(super) tag: String,
@@ -22,7 +22,7 @@ impl<'a> ImageReference for DockerReference<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct DockerRepo {
+pub(crate) struct DockerRepo {
     pub(super) domain: String, // Domain where the Repo is hosted.
     pub(super) path: String,   // Path within the Repo sans Tag
 }

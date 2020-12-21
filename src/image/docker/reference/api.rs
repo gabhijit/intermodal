@@ -21,7 +21,7 @@ const MAX_REFNAME_LEN: usize = 256;
 ///
 /// Note: Converting 'docker.io' to actual Domain Name is taken care of by Docker Client.
 ///
-pub fn parse(input_ref: &str) -> DockerReferenceResult {
+pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
     if input_ref.is_empty() {
         return Err(DockerReferenceError::EmptyNameError);
     }
