@@ -36,19 +36,18 @@ impl<'a> ImageTransport for DockerTransport<'a> {
     }
 
     fn parse_reference<'s>(&self, reference: &'s str) -> ImageResult<Box<dyn ImageReference + 's>> {
-        let dslash = reference.find("://");
+        let dslash = reference.find("//");
 
         if dslash.is_none() {
             return Err(ImageError::ReferenceError);
         }
 
-        let tokens: Vec<&str> = reference.split("://").collect();
+        let tokens: Vec<&str> = reference.split("//").collect();
 
         if tokens.len() != 2 {
             return Err(ImageError::ReferenceError);
         }
 
-        let _ref_type = tokens.get(0).unwrap();
         let ref_reference = tokens.get(1).unwrap();
 
         let result = parse(ref_reference);
