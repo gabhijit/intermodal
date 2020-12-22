@@ -3,6 +3,7 @@
 use clap::{crate_version, App, AppSettings};
 
 use intermodal::cmd;
+use intermodal::image::transports;
 
 fn main() {
     let matches = App::new("Container handling in Rust")
@@ -13,5 +14,7 @@ fn main() {
         )
         .get_matches();
 
-    println!("{:?}", matches);
+    println!("{:?}", matches.subcommand());
+
+    let _all_transports = transports::init_transports();
 }
