@@ -9,7 +9,8 @@ edition = "2018"
 [dependencies]
 
 clap = "*"
-hyper = "*"
+hyper = { version = "0.13.9"}
+hyper-tls = { version = "0.4.3" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "*"

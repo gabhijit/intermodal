@@ -19,6 +19,18 @@ impl<'a> ImageReference for DockerReference<'a> {
     fn transport(&self) -> Box<&(dyn ImageTransport + '_)> {
         Box::new(self.transport)
     }
+
+    fn string_within_transport(&self) -> String {
+        let mut s = String::from(format!("{}/{}", self.repo.domain, self.repo.path));
+        if !self.tag.is_empty() {
+            s.push_str(&self.tag);
+        } else {
+            if let Some(d) = &self.digest {
+                s.push_str(&format!("{}", d));
+            }
+        }
+        s
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

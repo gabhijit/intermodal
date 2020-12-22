@@ -12,7 +12,7 @@ pub trait ImageReference {
     #![allow(clippy::redundant_allocation)]
     fn transport<'it>(&'it self) -> Box<&(dyn ImageTransport + 'it)>;
 
-    // fn string_within_transport(&self) -> String;
+    fn string_within_transport(&self) -> String;
 
     // fn docker_reference(&self) -> Box<dyn NamedRef>;
 
