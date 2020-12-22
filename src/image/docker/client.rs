@@ -13,6 +13,7 @@ const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
 const DOCKER_MANIFESTS_PATH_FMT: &str = "/v2/{}/manifests/{}";
 const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
 
+#[derive(Debug)]
 struct DockerClient {
     https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
 }
@@ -44,4 +45,25 @@ impl DockerClient {
             Err(_) => None,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::image::docker::transport::DockerTransport;
+    use crate::image::types::ImageTransport;
+
+    #[test]
+    fn test_new_client_success() {
+        let image = "docker://fedora";
+        let image_ref = DockerTransport::singleton().parse_reference(image).unwrap();
+
+        let client = DockerClient::new(image_ref);
+
+        assert!(client.is_some());
+    }
+
+    #[test]
+    fn test_new_client_failure() {}
 }

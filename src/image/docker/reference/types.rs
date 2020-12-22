@@ -21,11 +21,13 @@ impl<'a> ImageReference for DockerReference<'a> {
     }
 
     fn string_within_transport(&self) -> String {
-        let mut s = format!("{}/{}", self.repo.domain, self.repo.path);
+        let mut s = format!("//{}/{}", self.repo.domain, self.repo.path);
         if !self.tag.is_empty() {
+            s.push(':');
             s.push_str(&self.tag);
         }
         if let Some(d) = &self.digest {
+            s.push('@');
             s.push_str(&format!("{}", d));
         }
         s
