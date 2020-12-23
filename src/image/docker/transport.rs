@@ -8,34 +8,29 @@ use crate::image::types::errors::ImageError;
 use crate::image::types::{ImageReference, ImageResult, ImageTransport};
 
 pub(crate) static DOCKER_TRANSPORT_NAME: &str = "docker";
-pub(crate) static DOCKER_TRANSPORT: DockerTransport = DockerTransport {
-    name: DOCKER_TRANSPORT_NAME,
-};
 
-pub(in crate::image) fn get_docker_transport<'s>() -> (String, Box<&'s (dyn ImageTransport)>) {
+pub(in crate::image) fn get_docker_transport() -> (String, Box<dyn ImageTransport + Send + Sync>) {
     (
         String::from(DOCKER_TRANSPORT_NAME),
-        Box::new(&DOCKER_TRANSPORT),
+        Box::new(DockerTransport::new()),
     )
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct DockerTransport<'a> {
-    pub(crate) name: &'a str,
-}
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) struct DockerTransport {}
 
-impl<'a> DockerTransport<'a> {
-    pub(crate) fn singleton() -> &'a Self {
-        &DOCKER_TRANSPORT
+impl DockerTransport {
+    pub(crate) fn new() -> Self {
+        DockerTransport {}
     }
 }
 
-impl<'a> ImageTransport for DockerTransport<'a> {
+impl ImageTransport for DockerTransport {
     fn name(&self) -> String {
-        String::from(self.name)
+        String::from(DOCKER_TRANSPORT_NAME)
     }
 
-    fn parse_reference<'s>(&self, reference: &'s str) -> ImageResult<Box<dyn ImageReference + 's>> {
+    fn parse_reference(&self, reference: &str) -> ImageResult<Box<dyn ImageReference>> {
         let dslash = reference.find("//");
 
         if dslash.is_none() {
@@ -70,7 +65,7 @@ mod tests {
             result: bool,
         }
 
-        let transport = DockerTransport::singleton();
+        let transport = DockerTransport::new();
         let test_cases = vec![
             ParseRefTC {
                 input: "docker://fedora",

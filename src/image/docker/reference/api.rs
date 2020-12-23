@@ -1,11 +1,10 @@
-use crate::image::docker::transport::DockerTransport;
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
 use super::parser::{ANCHORED_CAPTURING_NAME_RE, ANCHORED_REFERENCE_RE};
 use super::types::{DockerReference, DockerReferenceResult, DockerRepo};
 
-const DEFAULT_DOCKER_DOMAIN: &str = "docker.io";
+pub(crate) const DEFAULT_DOCKER_DOMAIN: &str = "docker.io";
 const DEFAULT_DOCKER_IMGNAME_PREFIX: &str = "library";
 const DEFAULT_TAG: &str = "latest";
 const MAX_REFNAME_LEN: usize = 256;
@@ -78,7 +77,6 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         tag,
                         digest: Digest::new_from_str(digest),
                         input_ref: String::from(input_ref),
-                        transport: DockerTransport::singleton(),
                     })
                 }
                 None => Err(DockerReferenceError::NameNotCanonicalError),
@@ -97,7 +95,7 @@ mod tests {
     fn test_parse_success_simple() {
         struct ParseTC<'a> {
             input_ref: &'a str,
-            output_ref_result: DockerReferenceResult<'a>,
+            output_ref_result: DockerReferenceResult,
         }
 
         let mut test_cases = vec![
@@ -111,7 +109,6 @@ mod tests {
                     tag: String::from("latest"),
                     digest: None,
                     input_ref: String::from("fedora"),
-                    transport: DockerTransport::singleton(),
                 }),
             },
             ParseTC {
@@ -124,7 +121,6 @@ mod tests {
                     tag: String::from("f32"),
                     digest: None,
                     input_ref: String::from("fedora:f32"),
-                    transport: DockerTransport::singleton(),
                 }),
             },
             ParseTC {

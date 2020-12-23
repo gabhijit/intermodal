@@ -4,20 +4,19 @@ use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
 
-pub(crate) type DockerReferenceResult<'a> = Result<DockerReference<'a>, DockerReferenceError>;
+pub(crate) type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
 
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct DockerReference<'a> {
-    pub(crate) transport: &'a DockerTransport<'a>,
+pub(crate) struct DockerReference {
     pub(crate) repo: DockerRepo,
     pub(crate) tag: String,
     pub(crate) digest: Option<Digest>,
     pub(crate) input_ref: String, // The string that was originally sent to us
 }
 
-impl<'a> ImageReference for DockerReference<'a> {
-    fn transport(&self) -> Box<&(dyn ImageTransport + '_)> {
-        Box::new(self.transport)
+impl ImageReference for DockerReference {
+    fn transport(&self) -> Box<dyn ImageTransport + Send + Sync> {
+        Box::new(DockerTransport::new())
     }
 
     fn string_within_transport(&self) -> String {

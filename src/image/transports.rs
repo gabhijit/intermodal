@@ -1,15 +1,62 @@
 use std::collections::HashMap;
+use std::sync::Mutex;
+
+use lazy_static::lazy_static;
 
 use super::docker::transport::get_docker_transport;
-use super::types::ImageTransport;
+use super::types::errors::ImageError;
+use super::types::{ImageReference, ImageResult, ImageTransport};
 
-pub fn init_transports() -> HashMap<String, Box<&'static (dyn ImageTransport)>> {
-    let mut all_transports_map: HashMap<String, Box<&'static (dyn ImageTransport)>> =
-        HashMap::new();
-
+lazy_static! {
+    static ref ALL_TRANSPORTS_MAP: Mutex<HashMap<String, Box<dyn ImageTransport + Send + Sync>>> =
+        Mutex::new(HashMap::new());
+}
+pub fn init_transports() {
     let (name, obj) = get_docker_transport();
 
-    all_transports_map.insert(name, obj);
+    {
+        let mut map = ALL_TRANSPORTS_MAP.lock().unwrap();
+        map.insert(name, obj);
+    }
+}
 
-    all_transports_map
+pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference + '_>> {
+    let tokens: Vec<&str> = image_name.split(':').collect();
+
+    if tokens.len() != 2 {
+        return Err(ImageError::ParseError);
+    }
+
+    {
+        let transport_name = tokens.get(0).unwrap().to_string();
+        let reference_part = tokens.get(1).unwrap();
+
+        let map = ALL_TRANSPORTS_MAP.lock().unwrap();
+        let transport = map.get(&transport_name).unwrap();
+
+        transport.parse_reference(reference_part)
+    }
+}
+
+pub fn transport_from_image_name(
+    image_name: &str,
+) -> Option<Box<dyn ImageTransport + Send + Sync>> {
+    let tokens: Vec<&str> = image_name.split(':').collect();
+
+    if tokens.len() != 2 {
+        return None;
+    }
+
+    {
+        let transport_name = tokens.get(0).unwrap().to_string();
+        let map = ALL_TRANSPORTS_MAP.lock().unwrap();
+
+        if map.contains_key(&transport_name) {
+            let transport = map.get(&transport_name).unwrap();
+            let cloned = (*transport).clone();
+            Some(cloned)
+        } else {
+            None
+        }
+    }
 }

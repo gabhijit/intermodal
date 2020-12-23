@@ -7,6 +7,7 @@ pub type ImageResult<T> = Result<T, ImageError>;
 pub enum ImageError {
     GenericError,
     ReferenceError,
+    ParseError,
 }
 
 impl fmt::Display for ImageError {
@@ -14,6 +15,7 @@ impl fmt::Display for ImageError {
         match *self {
             ImageError::GenericError => write!(f, "GenericError"),
             ImageError::ReferenceError => write!(f, "ReferenceError"),
+            ImageError::ParseError => write!(f, "ParseError"),
         }
     }
 }

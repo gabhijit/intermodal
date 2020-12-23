@@ -1,3 +1,5 @@
+use std::boxed::Box;
+
 pub type ImageResult<T> = Result<T, errors::ImageError>;
 
 pub trait ImageTransport {
@@ -10,7 +12,7 @@ pub trait ImageTransport {
 
 pub trait ImageReference {
     #![allow(clippy::redundant_allocation)]
-    fn transport<'it>(&'it self) -> Box<&(dyn ImageTransport + 'it)>;
+    fn transport(&self) -> Box<dyn ImageTransport + Send + Sync>;
 
     fn string_within_transport(&self) -> String;
 
@@ -24,6 +26,12 @@ pub trait ImageReference {
     // fn new_image<T>(&self) -> T;
     // fn new_image_source(&self) -> Result
     // fn new_image_destination(&self) -> Result
+}
+
+impl Clone for Box<dyn ImageTransport + Send + Sync> {
+    fn clone(&self) -> Self {
+        self.clone()
+    }
 }
 
 pub mod errors;

@@ -5,17 +5,18 @@
 use hyper::{body::Body, client::connect::HttpConnector, Client as HyperClient, Uri};
 use hyper_tls::HttpsConnector;
 
-use crate::image::docker::reference::api::parse;
+use crate::image::docker::reference::api::{parse, DEFAULT_DOCKER_DOMAIN};
 use crate::image::types::ImageReference;
 
-const DOCKER_REGISTRY_HTTPS_URL: &str = "https://registry-1.docker.io";
+const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
 const DOCKER_MANIFESTS_PATH_FMT: &str = "/v2/{}/manifests/{}";
 const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
 
 #[derive(Debug)]
-struct DockerClient {
-    https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
+pub(crate) struct DockerClient {
+    pub(crate) https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
+    pub(crate) repo_url: Uri,
 }
 
 impl DockerClient {
@@ -31,7 +32,11 @@ impl DockerClient {
             Ok(r) => {
                 let mut https_only = true;
 
-                let url = r.repo.domain.parse::<Uri>().unwrap();
+                let mut url = r.repo.domain.parse::<Uri>().unwrap();
+
+                if url == DEFAULT_DOCKER_DOMAIN {
+                    url = DOCKER_REGISTRY_V2_HTTPS_URL.parse::<Uri>().unwrap();
+                }
                 if url.scheme_str().is_none() || url.scheme_str() == Some("http") {
                     https_only = false;
                 }
@@ -40,7 +45,10 @@ impl DockerClient {
                 https_connector.https_only(https_only);
 
                 let https_client = HyperClient::builder().build(https_connector);
-                Some(DockerClient { https_client })
+                Some(DockerClient {
+                    https_client,
+                    repo_url: url,
+                })
             }
             Err(_) => None,
         }
@@ -57,7 +65,7 @@ mod tests {
     #[test]
     fn test_new_client_success() {
         let image = "docker://fedora";
-        let image_ref = DockerTransport::singleton().parse_reference(image).unwrap();
+        let image_ref = DockerTransport::new().parse_reference(image).unwrap();
 
         let client = DockerClient::new(image_ref);
 

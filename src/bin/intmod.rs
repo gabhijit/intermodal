@@ -16,5 +16,5 @@ fn main() {
 
     println!("{:?}", matches.subcommand());
 
-    let _all_transports = transports::init_transports();
+    transports::init_transports();
 }
