@@ -60,3 +60,49 @@ pub fn transport_from_image_name(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_transport_from_image_name_success() {
+        init_transports();
+        let result = transport_from_image_name("docker:fedora");
+
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_transport_from_image_name_failure() {
+        init_transports();
+        let result = transport_from_image_name("focker:fedora");
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_parse_image_name_succes() {
+        init_transports();
+        let result = parse_image_name("docker://fedora");
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_image_name_failure() {
+        init_transports();
+        let result = parse_image_name("docker");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_image_name_failure_reference() {
+        init_transports();
+        let result = parse_image_name("docker:");
+
+        assert!(result.is_err());
+    }
+}

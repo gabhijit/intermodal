@@ -51,6 +51,10 @@ impl ImageTransport for DockerTransport {
             Err(_) => Err(ImageError::ReferenceError), // FIXME: May be give a detailed error later
         }
     }
+
+    fn cloned(&self) -> Box<dyn ImageTransport + Send + Sync> {
+        Box::new(*self)
+    }
 }
 
 #[cfg(test)]

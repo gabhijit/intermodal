@@ -7,6 +7,7 @@ pub trait ImageTransport {
 
     fn parse_reference<'s>(&self, reference: &'s str) -> ImageResult<Box<dyn ImageReference + 's>>;
 
+    fn cloned(&self) -> Box<dyn ImageTransport + Send + Sync>;
     // fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
 }
 
@@ -30,7 +31,7 @@ pub trait ImageReference {
 
 impl Clone for Box<dyn ImageTransport + Send + Sync> {
     fn clone(&self) -> Self {
-        self.clone()
+        self.cloned()
     }
 }
 
