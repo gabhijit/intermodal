@@ -3,10 +3,14 @@ use std::fmt;
 
 pub type ImageResult<T> = Result<T, ImageError>;
 
+/// Error object related to Image Handling.
 #[derive(Debug)]
 pub enum ImageError {
+    /// A placeholder for all not-yet qualified Errors.
     GenericError,
+    /// Error related to Parsing underlying Image Reference
     ReferenceError,
+    /// Input Image format not confirming to [transport:reference]
     ParseError,
 }
 

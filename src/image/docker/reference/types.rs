@@ -1,3 +1,5 @@
+//! Types implementing Docker Reference
+
 use crate::image::docker::transport::DockerTransport;
 use crate::image::types::{ImageReference, ImageTransport};
 use crate::oci::digest::Digest;
@@ -6,6 +8,7 @@ use super::errors::DockerReferenceError;
 
 pub(crate) type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
 
+/// A structure implementing Docker Reference.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct DockerReference {
     pub(crate) repo: DockerRepo,
@@ -33,6 +36,7 @@ impl ImageReference for DockerReference {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct DockerRepo {
     pub(crate) domain: String, // Domain where the Repo is hosted.

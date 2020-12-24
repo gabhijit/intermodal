@@ -65,6 +65,8 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         return Err(DockerReferenceError::NameTooLongError);
                     }
 
+                    // We always provide default 'latest' tag to image if the input does not
+                    // contain a tag
                     if tag.is_empty() {
                         tag = String::from(DEFAULT_TAG);
                     }

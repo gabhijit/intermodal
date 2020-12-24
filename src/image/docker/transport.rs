@@ -1,4 +1,7 @@
 #![allow(clippy::redundant_allocation)]
+
+//! Implementation of Docker Transport
+
 use std::boxed::Box;
 use std::string::String;
 
@@ -16,6 +19,10 @@ pub(in crate::image) fn get_docker_transport() -> (String, Box<dyn ImageTranspor
     )
 }
 
+/// A Structure implementing Docker Transport.
+///
+/// Currently this structure does not have any fields, but only used as a place-holder for
+/// implementing the `ImageReference` trait.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DockerTransport {}
 

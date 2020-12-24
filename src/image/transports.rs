@@ -11,6 +11,12 @@ lazy_static! {
     static ref ALL_TRANSPORTS_MAP: Mutex<HashMap<String, Box<dyn ImageTransport + Send + Sync>>> =
         Mutex::new(HashMap::new());
 }
+
+/// A function that initializes all supported transports
+///
+/// Right now only docker transport is supported, when we support additional transports, we will
+/// need to revisit the function to make sure that all transports can be properly obtained.
+///
 pub fn init_transports() {
     let (name, obj) = get_docker_transport();
 

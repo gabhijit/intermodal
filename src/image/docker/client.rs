@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-// Docker client for Image registry
-//
+
+//! Docker client for Image registry
 
 use hyper::{body::Body, client::connect::HttpConnector, Client as HyperClient, Uri};
 use hyper_tls::HttpsConnector;
@@ -13,6 +13,7 @@ const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
 const DOCKER_MANIFESTS_PATH_FMT: &str = "/v2/{}/manifests/{}";
 const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
 
+/// Structure representing a Client for Docker Repository
 #[derive(Debug)]
 pub(crate) struct DockerClient {
     pub(crate) https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
@@ -20,6 +21,7 @@ pub(crate) struct DockerClient {
 }
 
 impl DockerClient {
+    /// Creates a New Docker Client from the Image Reference
     pub fn new(docker_ref: Box<dyn ImageReference>) -> Option<Self> {
         let sep = "//";
         let refstr = docker_ref.string_within_transport();
