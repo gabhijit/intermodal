@@ -1,6 +1,5 @@
 #![macro_use]
 
-#[doc(hidden)]
 //! Docker Image reference Parser
 //!
 //! [Grammer Spec](https://github.com/containers/image/blob/master/docker/reference/reference.go)

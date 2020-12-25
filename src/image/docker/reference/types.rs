@@ -9,7 +9,7 @@ use super::errors::DockerReferenceError;
 pub(crate) type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
 
 /// A structure implementing Docker Reference.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DockerReference {
     pub(crate) repo: DockerRepo,
     pub(crate) tag: String,
@@ -37,7 +37,7 @@ impl ImageReference for DockerReference {
 }
 
 #[doc(hidden)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct DockerRepo {
     pub(crate) domain: String, // Domain where the Repo is hosted.
     pub(crate) path: String,   // Path within the Repo sans Tag

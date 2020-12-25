@@ -23,6 +23,14 @@ pub trait ImageTransport {
     // fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
 }
 
+// Required for handling the Boxed Trait Objects of ImageTransport type
+impl Clone for Box<dyn ImageTransport + Send + Sync> {
+    fn clone(&self) -> Self {
+        self.cloned()
+    }
+}
+
+/// A trait that should be implemented by All Image References
 pub trait ImageReference {
     /// Returns the `ImageTransport` providing this Image Reference.
     fn transport(&self) -> Box<dyn ImageTransport + Send + Sync>;
@@ -46,11 +54,26 @@ pub trait ImageReference {
     // fn new_image_destination(&self) -> Result
 }
 
-// Required for handling the Boxed Trait Objects of ImageTransport type
-impl Clone for Box<dyn ImageTransport + Send + Sync> {
-    fn clone(&self) -> Self {
-        self.cloned()
-    }
+/// A trait that should be implemented by All Image Sources.
+///
+/// An ImageSource is typically useful while copying the images.
+pub trait ImageSource {
+    /// Returns a Reference corresponding to this particular ImageSource.
+    fn reference(&self) -> Box<dyn ImageReference>;
+
+    // FIXME: implement following functions
+    //
+    // Owner of this should call `close` to free resources associated
+    //fn close(&self) -> ImageResult<()>;
+
+    // Returns the manifest and it's MIME type
+    //fn get_manifest(&self, digest: &Digest) -> ImageResult<ImageManifest>;
+}
+
+/// A struct representing Image Manfest
+pub struct ImageManifest {
+    manifest: Vec<u8>,
+    mime_type: &'static str,
 }
 
 pub mod errors;
