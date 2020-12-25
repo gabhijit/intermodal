@@ -1,4 +1,6 @@
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+
+use crate::image::transports;
 
 pub fn add_subcmd_inspect() -> App<'static, 'static> {
     SubCommand::with_name("inspect")
@@ -21,6 +23,21 @@ pub fn add_subcmd_inspect() -> App<'static, 'static> {
                 .help("output raw manifest or configuration")
                 .long("raw"),
         )
+}
+
+pub fn run_subcmd_inspect(cmd: &ArgMatches) {
+    let image_name = cmd.value_of("name").unwrap();
+
+    println!("Image Name: {}", image_name);
+
+    if let Ok(image_ref) = transports::parse_image_name(image_name) {
+        println!(
+            "Valid Reference found! {}",
+            image_ref.string_within_transport()
+        );
+    } else {
+        println!("Invalid Image Name, {}", image_name);
+    }
 }
 
 #[cfg(test)]

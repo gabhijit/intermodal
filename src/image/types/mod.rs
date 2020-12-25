@@ -42,6 +42,8 @@ pub trait ImageReference {
     /// reference equivalent to the current reference.
     fn string_within_transport(&self) -> String;
 
+    /// Returns an Image Source from the Reference provided or an Error.
+    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource>>;
     // FIXME: implement following methods
     // fn docker_reference(&self) -> Box<dyn NamedRef>;
 
@@ -50,7 +52,6 @@ pub trait ImageReference {
     // fn policy_configuration_namespaces(&self) -> Vec<String>;
 
     // fn new_image<T>(&self) -> T;
-    // fn new_image_source(&self) -> Result
     // fn new_image_destination(&self) -> Result
 }
 

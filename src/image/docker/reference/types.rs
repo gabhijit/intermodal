@@ -1,7 +1,11 @@
 //! Types implementing Docker Reference
 
-use crate::image::docker::transport::DockerTransport;
-use crate::image::types::{ImageReference, ImageTransport};
+use crate::image::docker::{
+    client::DockerClient, source::DockerSource, transport::DockerTransport,
+};
+use crate::image::types::{
+    errors::ImageError, ImageReference, ImageResult, ImageSource, ImageTransport,
+};
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
@@ -15,6 +19,16 @@ pub(crate) struct DockerReference {
     pub(crate) tag: String,
     pub(crate) digest: Option<Digest>,
     pub(crate) input_ref: String, // The string that was originally sent to us
+}
+
+impl DockerReference {
+    pub fn domain(&self) -> &str {
+        &self.repo.domain
+    }
+
+    pub fn path(&self) -> &str {
+        &self.repo.path
+    }
 }
 
 impl ImageReference for DockerReference {
@@ -33,6 +47,16 @@ impl ImageReference for DockerReference {
             s.push_str(&format!("{}", d));
         }
         s
+    }
+
+    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource>> {
+        let domain = self.domain();
+        let client = DockerClient::new(domain);
+
+        Ok(Box::new(DockerSource {
+            reference: self.clone(),
+            client,
+        }))
     }
 }
 
