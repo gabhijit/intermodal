@@ -29,10 +29,10 @@ pub fn init_transports() {
 /// Parses the given input image_name and return a Result with success value as a Boxed
 /// trait object implementing `ImageReference` trait.
 pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference + '_>> {
-    let tokens: Vec<&str> = image_name.split(':').collect();
+    let tokens: Vec<&str> = image_name.splitn(2, ':').collect();
 
     if tokens.len() != 2 {
-        log::error!("Input Image name '{}' is invalid", image_name);
+        log::error!("Input Image name '{}' is invalid.", image_name);
         return Err(ImageError::ParseError);
     }
 
@@ -115,6 +115,24 @@ mod tests {
         let result = parse_image_name("docker://fedora");
 
         assert!(result.is_ok());
+        let reference = result.unwrap();
+        assert_eq!(
+            reference.string_within_transport(),
+            "//docker.io/library/fedora:latest"
+        );
+    }
+
+    #[test]
+    fn test_parse_image_name_with_tag_success() {
+        init_transports();
+        let result = parse_image_name("docker://fedora:foo");
+
+        assert!(result.is_ok());
+        let reference = result.unwrap();
+        assert_eq!(
+            reference.string_within_transport(),
+            "//docker.io/library/fedora:foo"
+        );
     }
 
     #[test]
