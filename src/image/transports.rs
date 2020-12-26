@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use log;
 
 use super::docker::transport::get_docker_transport;
 use super::types::errors::ImageError;

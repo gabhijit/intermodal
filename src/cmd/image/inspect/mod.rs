@@ -1,3 +1,5 @@
+use std::io;
+
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use crate::image::transports;
@@ -25,18 +27,22 @@ pub fn add_subcmd_inspect() -> App<'static, 'static> {
         )
 }
 
-pub fn run_subcmd_inspect(cmd: &ArgMatches) {
+pub fn run_subcmd_inspect(cmd: &ArgMatches) -> io::Result<()> {
     let image_name = cmd.value_of("name").unwrap();
 
-    println!("Image Name: {}", image_name);
+    log::debug!("Image Name: {}", image_name);
 
     if let Ok(image_ref) = transports::parse_image_name(image_name) {
-        println!(
+        log::debug!(
             "Valid Reference found! {}",
             image_ref.string_within_transport()
         );
+        Ok(())
     } else {
-        println!("Invalid Image Name, {}", image_name);
+        let err = format!("Invalid Image Name: {}", image_name);
+
+        log::error!("{}", &err);
+        Err(io::Error::new(io::ErrorKind::InvalidInput, err))
     }
 }
 

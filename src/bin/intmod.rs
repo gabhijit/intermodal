@@ -1,4 +1,5 @@
-#![allow(unused_variables)]
+#![warn(unused_variables)]
+use std::io;
 
 use clap::{crate_version, App, AppSettings, Arg};
 use env_logger::Env;
@@ -6,7 +7,7 @@ use env_logger::Env;
 use intermodal::cmd::image;
 use intermodal::image::transports;
 
-fn main() {
+fn main() -> io::Result<()> {
     let matches = App::new("Container handling in Rust")
         .settings(&[AppSettings::ArgRequiredElseHelp])
         .version(crate_version!())
@@ -35,10 +36,16 @@ fn main() {
     transports::init_transports();
 
     #[allow(clippy::single_match)]
-    match matches.subcommand() {
+    let _ = match matches.subcommand() {
         ("image", Some(subcmd)) => {
-            image::run_subcmd_image(subcmd);
+            image::run_subcmd_image(subcmd)?;
+            Ok(())
         }
-        _ => {}
-    }
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Unknown Command!",
+        )),
+    };
+
+    Ok(())
 }

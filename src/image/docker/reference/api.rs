@@ -2,8 +2,6 @@
 //!
 //! Note: User's outside this module, should only use public API from this module.
 
-use log;
-
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
@@ -71,6 +69,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         );
                         domain = String::from(DEFAULT_DOCKER_DOMAIN);
                     }
+                    log::debug!("Domain is '{}'", domain);
 
                     path_name = String::from(cn.get(2).map_or("", |m| m.as_str()));
                     if path_name.find('/').is_none() {
@@ -89,6 +88,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         );
                         return Err(DockerReferenceError::NameTooLongError);
                     }
+                    log::debug!("Resolved Pathname is : '{}'", path_name);
 
                     // We always provide default 'latest' tag to image if the input does not
                     // contain a tag

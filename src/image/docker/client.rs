@@ -4,7 +4,6 @@
 
 use hyper::{body::Body, client::connect::HttpConnector, Client as HyperClient, Uri};
 use hyper_tls::HttpsConnector;
-use log;
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";

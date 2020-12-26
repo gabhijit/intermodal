@@ -5,8 +5,6 @@
 use std::boxed::Box;
 use std::string::String;
 
-use log;
-
 use crate::image::docker::reference::api::parse;
 
 use crate::image::types::errors::ImageError;
