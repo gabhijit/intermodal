@@ -1,3 +1,9 @@
+//! APIs for Docker Reference Parsing
+//!
+//! Note: User's outside this module, should only use public API from this module.
+
+use log;
+
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;
@@ -22,6 +28,7 @@ const MAX_REFNAME_LEN: usize = 256;
 ///
 pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
     if input_ref.is_empty() {
+        log::error!("Input reference is Empty!");
         return Err(DockerReferenceError::EmptyNameError);
     }
 
@@ -30,11 +37,16 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
     match captured_ref {
         Some(c) => {
             if c.len() != 4 {
+                log::error!(
+                    "Reference '{}' is not in '[domain]/name[:tag][@digest]' format.",
+                    input_ref
+                );
                 return Err(DockerReferenceError::InvalidFormatError);
             }
 
             name = String::from(c.get(1).map_or("", |m| m.as_str()));
             if name.is_empty() {
+                log::error!("Name part of the reference is empty!");
                 return Err(DockerReferenceError::EmptyNameError);
             }
 
@@ -47,27 +59,44 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
             match name_captures {
                 Some(cn) => {
                     if cn.len() != 3 {
+                        log::error!("Parsed name: '{}' not in canonical format!", name);
                         return Err(DockerReferenceError::NameNotCanonicalError);
                     }
 
                     domain = String::from(cn.get(1).map_or("", |m| m.as_str()));
                     if domain.is_empty() {
+                        log::debug!(
+                            "Empty Domain Found, setting to default '{}'",
+                            DEFAULT_DOCKER_DOMAIN
+                        );
                         domain = String::from(DEFAULT_DOCKER_DOMAIN);
                     }
 
                     path_name = String::from(cn.get(2).map_or("", |m| m.as_str()));
                     if path_name.find('/').is_none() {
+                        log::debug!("Name(Path) found without '/', Setting the default '{}' prefix for the Name.",
+                            DEFAULT_DOCKER_IMGNAME_PREFIX
+                        );
                         path_name.insert(0, '/');
                         path_name.insert_str(0, DEFAULT_DOCKER_IMGNAME_PREFIX);
                     }
 
                     if path_name.len() > MAX_REFNAME_LEN {
+                        log::debug!(
+                            "Length of the name '{}' longer than Maximum '{}',",
+                            path_name.len(),
+                            MAX_REFNAME_LEN
+                        );
                         return Err(DockerReferenceError::NameTooLongError);
                     }
 
                     // We always provide default 'latest' tag to image if the input does not
                     // contain a tag
                     if tag.is_empty() {
+                        log::debug!(
+                            "Tag is Empty. Adding default '{}' tag to the reference.",
+                            DEFAULT_TAG
+                        );
                         tag = String::from(DEFAULT_TAG);
                     }
 

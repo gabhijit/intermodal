@@ -1,4 +1,11 @@
-//! Types required for handling Images
+//! Definitions of traits required for handling Images.
+//!
+//! # Reference:
+//! [Types Implemented in Go](https://github.com/containers/image/blob/master/types/types.go)
+//!
+//! We are not going to define the types matching one to one above, but instead, the idea is to
+//! have Interface definitions that would broadly achieve everything that the interfaces above
+//! achieve.
 
 use std::boxed::Box;
 

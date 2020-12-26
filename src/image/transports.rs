@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
+use log;
 
 use super::docker::transport::get_docker_transport;
 use super::types::errors::ImageError;
@@ -14,22 +15,25 @@ lazy_static! {
 
 /// A function that initializes all supported transports
 ///
-/// Right now only docker transport is supported, when we support additional transports, we will
-/// need to revisit the function to make sure that all transports can be properly obtained.
-///
 pub fn init_transports() {
+    // Right now only docker transport is supported, when we support additional transports, we will
+    // need to revisit the function to make sure that all transports can be properly obtained.
     let (name, obj) = get_docker_transport();
 
     {
+        log::debug!("Registering '{}' Transport.", name);
         let mut map = ALL_TRANSPORTS_MAP.lock().unwrap();
         map.insert(name, obj);
     }
 }
 
+/// Parses the given input image_name and return a Result with success value as a Boxed
+/// trait object implementing `ImageReference` trait.
 pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference + '_>> {
     let tokens: Vec<&str> = image_name.split(':').collect();
 
     if tokens.len() != 2 {
+        log::error!("Input Image name '{}' is invalid", image_name);
         return Err(ImageError::ParseError);
     }
 
@@ -37,31 +41,49 @@ pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference 
         let transport_name = tokens.get(0).unwrap().to_string();
         let reference_part = tokens.get(1).unwrap();
 
+        log::debug!(
+            "Getting Transport object corresponding to Name:{}",
+            transport_name
+        );
         let map = ALL_TRANSPORTS_MAP.lock().unwrap();
+
         let transport = map.get(&transport_name).unwrap();
 
         transport.parse_reference(reference_part)
     }
 }
 
+/// Returns the Boxed Trait object implementing the `ImageTransport` trait or None.
 pub fn transport_from_image_name(
     image_name: &str,
 ) -> Option<Box<dyn ImageTransport + Send + Sync>> {
     let tokens: Vec<&str> = image_name.split(':').collect();
 
     if tokens.len() != 2 {
+        log::error!(
+            "Input Image Name '{}' is not in valid <transport>:<path> format.",
+            image_name
+        );
         return None;
     }
 
     {
         let transport_name = tokens.get(0).unwrap().to_string();
-        let map = ALL_TRANSPORTS_MAP.lock().unwrap();
+        log::debug!(
+            "Getting Transport object corresponding to {}",
+            transport_name
+        );
 
+        let map = ALL_TRANSPORTS_MAP.lock().unwrap();
         if map.contains_key(&transport_name) {
             let transport = map.get(&transport_name).unwrap();
             let cloned = (*transport).clone();
             Some(cloned)
         } else {
+            log::debug!(
+                "Transport Object corresponding to Name {} Not found!",
+                transport_name
+            );
             None
         }
     }

@@ -3,9 +3,7 @@
 use crate::image::docker::{
     client::DockerClient, source::DockerSource, transport::DockerTransport,
 };
-use crate::image::types::{
-    errors::ImageError, ImageReference, ImageResult, ImageSource, ImageTransport,
-};
+use crate::image::types::{ImageReference, ImageResult, ImageSource, ImageTransport};
 use crate::oci::digest::Digest;
 
 use super::errors::DockerReferenceError;

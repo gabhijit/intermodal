@@ -1,4 +1,12 @@
-// Implementation of Digest type
+//! Implementation of OCI Digest type
+//!
+//! # Reference:
+//! [Digest implementation in go](https://github.com/opencontainers/go-digest/)
+//!
+//! # Note:
+//!
+//! We are not implementing (or rather have not implemented yet, everything from the Go module
+//! above, but we'll do so as needed basis.
 
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
@@ -33,8 +41,6 @@ impl Error for DigestError {}
 struct DigestVisitor;
 
 impl Digest {
-    // FIXME: We assume, passed string is a valid digest, usually callers will ensure
-
     pub fn new_from_str(s: &str) -> Option<Self> {
         let tokens: Vec<&str> = s.split(':').collect();
         if tokens.len() == 2 {

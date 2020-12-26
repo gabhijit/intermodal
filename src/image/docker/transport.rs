@@ -5,6 +5,8 @@
 use std::boxed::Box;
 use std::string::String;
 
+use log;
+
 use crate::image::docker::reference::api::parse;
 
 use crate::image::types::errors::ImageError;
@@ -41,6 +43,10 @@ impl ImageTransport for DockerTransport {
         let dslash = reference.find("//");
 
         if dslash.is_none() {
+            log::error!(
+                "Docker Reference String '{}' does not start with '//'.",
+                reference
+            );
             return Err(ImageError::ReferenceError);
         }
 
@@ -52,6 +58,7 @@ impl ImageTransport for DockerTransport {
 
         let ref_reference = tokens.get(1).unwrap();
 
+        log::debug!("Parsing Reference '{}'", ref_reference);
         let result = parse(ref_reference);
         match result {
             Ok(r) => Ok(Box::new(r)),
