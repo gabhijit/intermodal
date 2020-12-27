@@ -22,6 +22,7 @@ pub fn run_subcmd_image(subcmd: &ArgMatches) -> io::Result<()> {
 mod tests {
 
     use super::*;
+    use inspect::*;
 
     /// Passing No argument to this Subcommand should Fail.
     #[test]
@@ -37,5 +38,17 @@ mod tests {
         let m = add_subcmd_image().get_matches_from_safe(vec!["image", "foo"]);
 
         assert!(m.is_err(), "{}", m.err().unwrap());
+    }
+
+    /// Test the 'inspect' subcommand
+    #[test]
+    fn test_inspect_subcommand_run_should_succeed_with_error() {
+        let m = add_subcmd_image()
+            .subcommand(add_subcmd_inspect())
+            .get_matches_from_safe(vec!["image", "inspect", "docker://docker.io/fedora"])
+            .unwrap();
+
+        let result = run_subcmd_image(&m);
+        assert!(result.is_ok());
     }
 }

@@ -1,9 +1,12 @@
+//! Handling of 'inspect' subcommand of 'image' command
+
 use std::io;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use crate::image::transports;
 
+/// API function to subscribe handling of 'inspect' subcommands
 pub fn add_subcmd_inspect() -> App<'static, 'static> {
     SubCommand::with_name("inspect")
         .settings(&[AppSettings::ArgRequiredElseHelp])
@@ -27,6 +30,7 @@ pub fn add_subcmd_inspect() -> App<'static, 'static> {
         )
 }
 
+/// Run the 'inspect' subcommand
 pub fn run_subcmd_inspect(cmd: &ArgMatches) -> io::Result<()> {
     let image_name = cmd.value_of("name").unwrap();
 
@@ -50,6 +54,7 @@ pub fn run_subcmd_inspect(cmd: &ArgMatches) -> io::Result<()> {
 mod tests {
 
     use super::*;
+    use crate::image::transports;
 
     #[test]
     fn test_subcommand_inspect_no_name() {
@@ -71,5 +76,19 @@ mod tests {
         let m = add_subcmd_inspect().get_matches_from_safe(vec!["inspect", "--war"]);
 
         assert!(m.is_err());
+    }
+
+    #[test]
+    fn test_subcommand_run_success() {
+        transports::init_transports();
+        let m = add_subcmd_inspect()
+            .get_matches_from_safe(vec!["inspec", "docker://fedora"])
+            .unwrap();
+        let name = m.value_of("name").unwrap();
+
+        assert_eq!(name, "docker://fedora");
+        let result = run_subcmd_inspect(&m);
+
+        assert!(result.is_ok());
     }
 }

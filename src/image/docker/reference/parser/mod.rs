@@ -4,7 +4,7 @@
 //!
 //! [Grammer Spec](https://github.com/containers/image/blob/master/docker/reference/reference.go)
 //!
-//! ```ignore
+//!
 //! Grammar
 //!
 //!   reference                       := name [ ":" tag ] [ "@" digest ]
@@ -26,7 +26,7 @@
 //!
 //!   identifier                      := /[a-f0-9]{64}/
 //!   short-identifier                := /[a-f0-9]{6,64}/
-//! ```
+//!
 
 use lazy_static::lazy_static;
 use regex::{escape, Regex};
