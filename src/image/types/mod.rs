@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 //! Definitions of traits required for handling Images.
 //!
 //! # Reference:

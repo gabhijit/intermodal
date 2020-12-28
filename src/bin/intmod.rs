@@ -7,7 +7,8 @@ use env_logger::Env;
 use intermodal::cmd::image;
 use intermodal::image::transports;
 
-fn main() -> io::Result<()> {
+#[tokio::main]
+async fn main() -> io::Result<()> {
     let matches = App::new("Container handling in Rust")
         .settings(&[AppSettings::ArgRequiredElseHelp])
         .version(crate_version!())
@@ -38,7 +39,7 @@ fn main() -> io::Result<()> {
     #[allow(clippy::single_match)]
     let _ = match matches.subcommand() {
         ("image", Some(subcmd)) => {
-            image::run_subcmd_image(subcmd)?;
+            image::run_subcmd_image(subcmd).await?;
             Ok(())
         }
         _ => Err(io::Error::new(

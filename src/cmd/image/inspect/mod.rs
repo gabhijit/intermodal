@@ -30,8 +30,8 @@ pub fn add_subcmd_inspect() -> App<'static, 'static> {
         )
 }
 
-/// Run the 'inspect' subcommand
-pub fn run_subcmd_inspect(cmd: &ArgMatches) -> io::Result<()> {
+/// Run the 'inspect' subcommand asynchronously.
+pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
     let image_name = cmd.value_of("name").unwrap();
 
     log::debug!("Image Name: {}", image_name);
@@ -41,6 +41,7 @@ pub fn run_subcmd_inspect(cmd: &ArgMatches) -> io::Result<()> {
             "Valid Reference found! {}",
             image_ref.string_within_transport()
         );
+        let _ = image_ref.new_image_source();
         Ok(())
     } else {
         let err = format!("Invalid Image Name: {}", image_name);
@@ -78,8 +79,8 @@ mod tests {
         assert!(m.is_err());
     }
 
-    #[test]
-    fn test_subcommand_run_success() {
+    #[tokio::test]
+    async fn test_subcommand_run_success() {
         transports::init_transports();
         let m = add_subcmd_inspect()
             .get_matches_from_safe(vec!["inspec", "docker://fedora"])
@@ -87,8 +88,8 @@ mod tests {
         let name = m.value_of("name").unwrap();
 
         assert_eq!(name, "docker://fedora");
-        let result = run_subcmd_inspect(&m);
 
+        let result = run_subcmd_inspect(&m).await;
         assert!(result.is_ok());
     }
 }

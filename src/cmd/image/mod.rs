@@ -4,16 +4,18 @@ use clap::{App, AppSettings, ArgMatches, SubCommand};
 
 pub mod inspect;
 
+/// Command line Parsing for 'image' subcommand
 pub fn add_subcmd_image() -> App<'static, 'static> {
     SubCommand::with_name("image")
         .settings(&[AppSettings::ArgRequiredElseHelp])
         .about("Command to handle container images.")
 }
 
-pub fn run_subcmd_image(subcmd: &ArgMatches) -> io::Result<()> {
+/// Run 'image' subcommand asynchronously
+pub async fn run_subcmd_image(subcmd: &ArgMatches<'_>) -> io::Result<()> {
     #[allow(clippy::single_match)]
     match subcmd.subcommand() {
-        ("inspect", Some(inspect_subcmd)) => inspect::run_subcmd_inspect(inspect_subcmd),
+        ("inspect", Some(inspect_subcmd)) => Ok(inspect::run_subcmd_inspect(inspect_subcmd).await?),
         _ => Err(io::Error::new(io::ErrorKind::Other, "Unknown Subcommand")),
     }
 }
@@ -41,14 +43,14 @@ mod tests {
     }
 
     /// Test the 'inspect' subcommand
-    #[test]
-    fn test_inspect_subcommand_run_should_succeed_with_error() {
+    #[tokio::test]
+    async fn test_inspect_subcommand_run_should_succeed_with_error() {
         let m = add_subcmd_image()
             .subcommand(add_subcmd_inspect())
             .get_matches_from_safe(vec!["image", "inspect", "docker://docker.io/fedora"])
             .unwrap();
 
-        let result = run_subcmd_image(&m);
+        let result = run_subcmd_image(&m).await;
         assert!(result.is_ok());
     }
 }
