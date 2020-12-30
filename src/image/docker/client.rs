@@ -7,6 +7,8 @@ use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
     Uri,
 };
+use serde::Deserialize;
+
 use hyper_tls::HttpsConnector;
 
 use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
@@ -60,7 +62,11 @@ impl DockerClient {
     /// Performs API version check against the Docker Registry V2 API.
     ///
     /// Note: Only Docker Registry V2 is supported.
-    pub(super) async fn get_bearer_token_for_path(&mut self, path: &str) -> Result<(), HyperError> {
+    pub(super) async fn get_bearer_token_for_path_scope(
+        &mut self,
+        path: &str,
+        scope: Option<&str>,
+    ) -> Result<(), HyperError> {
         let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
 
         log::debug!("Sending Request to {}", ping_url);
@@ -76,8 +82,15 @@ impl DockerClient {
                     "Got WWW-Authenticate Header: {}",
                     www_auth_header.to_str().unwrap()
                 );
+
+                let scope = if scope.is_none() {
+                    "pull"
+                } else {
+                    scope.unwrap()
+                };
+
                 let challenge_url = self
-                    .prepare_auth_challenge_url(path, www_auth_header)
+                    .prepare_auth_challenge_url(path, scope, www_auth_header)
                     .parse::<Uri>()
                     .unwrap();
                 log::debug!("{}", challenge_url);
@@ -85,7 +98,11 @@ impl DockerClient {
                 log::debug!("{}", auth_response.status());
 
                 let body = to_bytes(auth_response).await?;
-                log::debug!("{:#?}", std::str::from_utf8(&body).unwrap());
+                let bearer_token =
+                    serde_json::from_slice::<'_, BearerToken>(body.as_ref()).unwrap();
+                log::debug!("{:#?}", bearer_token);
+
+                self.bearer_token = Some(bearer_token);
             }
         }
         Ok(())
@@ -100,23 +117,28 @@ impl DockerClient {
         log::debug!("{}", manifest_path);
 
         if self.bearer_token.is_none() {
-            self.get_bearer_token_for_path(path).await?
+            self.get_bearer_token_for_path_scope(path, None).await?
         }
         Ok(())
     }
 
     // FIXME: This is hard-coded right now, when we can parse the header properly,
     // use parsed values.
-    fn prepare_auth_challenge_url(&self, path: &str, _: &HeaderValue) -> String {
+    fn prepare_auth_challenge_url(&self, path: &str, scope: &str, _: &HeaderValue) -> String {
         format!(
-            "https://auth.docker.io/token?repository:{}:pull&service=registry.docker.io",
-            path
+            "https://auth.docker.io/token?repository:{}:{}&service=registry.docker.io",
+            path, scope
         )
     }
 }
 
-#[derive(Debug, Clone)]
-struct BearerToken;
+#[derive(Debug, Clone, Deserialize)]
+struct BearerToken {
+    token: String,
+    access_token: String,
+    issued_at: String,
+    expires_in: u16,
+}
 
 #[cfg(test)]
 mod tests {
@@ -135,7 +157,9 @@ mod tests {
     async fn test_api_version_check() {
         let mut client = DockerClient::new(DOCKER_REGISTRY_V2_HTTPS_URL);
 
-        let result = client.get_bearer_token_for_path("").await;
+        let result = client
+            .get_bearer_token_for_path_scope("library/fedora", Some("pull"))
+            .await;
 
         assert!(result.is_ok());
     }
