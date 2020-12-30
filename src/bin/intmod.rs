@@ -7,7 +7,7 @@ use env_logger::Env;
 use intermodal::cmd::image;
 use intermodal::image::transports;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> io::Result<()> {
     let matches = App::new("Container handling in Rust")
         .settings(&[AppSettings::ArgRequiredElseHelp])

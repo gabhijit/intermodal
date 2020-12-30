@@ -9,9 +9,9 @@ edition = "2018"
 [dependencies]
 
 clap = "*"
-tokio = { version = "0.2", features = ["full"] }
-hyper = { version = "0.13", features = [] }
-hyper-tls = { version = "0.4.3" }
+tokio = { version = "1", features = ["macros", "rt"] }
+hyper = { version = "0.14.2", features = ["client", "http1"] }
+hyper-tls = { version = "0.5" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "*"
