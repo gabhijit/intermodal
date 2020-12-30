@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 //! Definitions of traits required for handling Images.
 //!
 //! # Reference:
@@ -10,6 +8,10 @@
 //! achieve.
 
 use std::boxed::Box;
+
+use async_trait::async_trait;
+
+use crate::oci::digest::Digest;
 
 /// A Result of operations related to handling Images
 pub type ImageResult<T> = Result<T, errors::ImageError>;
@@ -67,17 +69,18 @@ pub trait ImageReference {
 /// A trait that should be implemented by All Image Sources.
 ///
 /// An ImageSource is typically useful while copying the images.
+#[async_trait]
 pub trait ImageSource {
     /// Returns a Reference corresponding to this particular ImageSource.
     fn reference(&self) -> Box<dyn ImageReference>;
+
+    // Returns the manifest and it's MIME type
+    async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest>;
 
     // FIXME: implement following functions
     //
     // Owner of this should call `close` to free resources associated
     //fn close(&self) -> ImageResult<()>;
-
-    // Returns the manifest and it's MIME type
-    //fn get_manifest(&self, digest: &Digest) -> ImageResult<ImageManifest>;
 }
 
 /// A struct representing Image Manfest

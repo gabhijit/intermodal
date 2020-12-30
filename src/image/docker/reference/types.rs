@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 //! Types implementing Docker Reference
 
 use crate::image::docker::{
@@ -69,4 +71,18 @@ impl ImageReference for DockerReference {
 pub(crate) struct DockerRepo {
     pub(crate) domain: String, // Domain where the Repo is hosted.
     pub(crate) path: String,   // Path within the Repo sans Tag
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::image::docker::reference::api::parse;
+
+    #[test]
+    fn test_default_domain_for_image() {
+        let image_ref = parse("fedora").unwrap();
+
+        assert_eq!(image_ref.domain(), "docker.io");
+        assert_eq!(image_ref.path(), "library/fedora");
+    }
 }

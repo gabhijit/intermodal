@@ -41,7 +41,10 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
             "Valid Reference found! {}",
             image_ref.string_within_transport()
         );
-        let _ = image_ref.new_image_source();
+        let mut image_src = image_ref.new_image_source().unwrap();
+        log::debug!("calling get_manifest");
+        let _ = image_src.get_manifest(None).await;
+
         Ok(())
     } else {
         let err = format!("Invalid Image Name: {}", image_name);

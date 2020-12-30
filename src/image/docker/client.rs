@@ -2,8 +2,11 @@
 
 //! Docker client for Image registry
 
-use hyper::http::StatusCode;
-use hyper::{body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError, Uri};
+use hyper::http::{HeaderValue, StatusCode};
+use hyper::{
+    body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
+    Uri,
+};
 use hyper_tls::HttpsConnector;
 
 use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
@@ -15,9 +18,10 @@ const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
 
 /// Structure representing a Client for Docker Repository
 #[derive(Debug, Clone)]
-pub(crate) struct DockerClient {
-    pub(crate) https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
-    pub(crate) repo_url: Uri,
+pub(super) struct DockerClient {
+    https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
+    repo_url: Uri,
+    bearer_token: Option<BearerToken>,
 }
 
 impl DockerClient {
@@ -48,6 +52,7 @@ impl DockerClient {
         DockerClient {
             https_client,
             repo_url,
+            bearer_token: None,
         }
     }
 
@@ -55,12 +60,14 @@ impl DockerClient {
     /// Performs API version check against the Docker Registry V2 API.
     ///
     /// Note: Only Docker Registry V2 is supported.
-    async fn api_version_check(&mut self) -> Result<(), HyperError> {
-        let ping_url = format!("{}/v2/", self.repo_url).parse::<Uri>().unwrap();
+    pub(super) async fn get_bearer_token_for_path(&mut self, path: &str) -> Result<(), HyperError> {
+        let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
 
         log::debug!("Sending Request to {}", ping_url);
 
         let response = self.https_client.get(ping_url).await.unwrap();
+
+        log::debug!("Received Response: {}", response.status());
 
         if response.status() == StatusCode::UNAUTHORIZED {
             log::debug!("Received 401. Checking For 'WWW-Authenticate' header.");
@@ -69,11 +76,47 @@ impl DockerClient {
                     "Got WWW-Authenticate Header: {}",
                     www_auth_header.to_str().unwrap()
                 );
+                let challenge_url = self
+                    .prepare_auth_challenge_url(path, www_auth_header)
+                    .parse::<Uri>()
+                    .unwrap();
+                log::debug!("{}", challenge_url);
+                let auth_response = self.https_client.get(challenge_url).await?;
+                log::debug!("{}", auth_response.status());
+
+                let body = to_bytes(auth_response).await?;
+                log::debug!("{:#?}", std::str::from_utf8(&body).unwrap());
             }
         }
         Ok(())
     }
+
+    pub(super) async fn do_get_manifest(
+        &mut self,
+        path: &str,
+        digest_or_tag: &str,
+    ) -> Result<(), HyperError> {
+        let manifest_path = format!("{}{}/{}", self.repo_url, path, digest_or_tag);
+        log::debug!("{}", manifest_path);
+
+        if self.bearer_token.is_none() {
+            self.get_bearer_token_for_path(path).await?
+        }
+        Ok(())
+    }
+
+    // FIXME: This is hard-coded right now, when we can parse the header properly,
+    // use parsed values.
+    fn prepare_auth_challenge_url(&self, path: &str, _: &HeaderValue) -> String {
+        format!(
+            "https://auth.docker.io/token?repository:{}:pull&service=registry.docker.io",
+            path
+        )
+    }
 }
+
+#[derive(Debug, Clone)]
+struct BearerToken;
 
 #[cfg(test)]
 mod tests {
@@ -92,7 +135,7 @@ mod tests {
     async fn test_api_version_check() {
         let mut client = DockerClient::new(DOCKER_REGISTRY_V2_HTTPS_URL);
 
-        let result = client.api_version_check().await;
+        let result = client.get_bearer_token_for_path("").await;
 
         assert!(result.is_ok());
     }
