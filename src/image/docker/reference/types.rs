@@ -8,9 +8,9 @@ use crate::image::docker::{
 use crate::image::types::{ImageReference, ImageResult, ImageSource, ImageTransport};
 use crate::oci::digest::Digest;
 
-use super::errors::DockerReferenceError;
+use super::errors::ReferenceError;
 
-pub(crate) type DockerReferenceResult = Result<DockerReference, DockerReferenceError>;
+pub(crate) type DockerReferenceResult = Result<DockerReference, ReferenceError>;
 
 /// A structure implementing Docker Reference.
 #[derive(Clone, Debug, PartialEq, Eq)]

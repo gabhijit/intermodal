@@ -10,6 +10,7 @@
 
 pub mod client;
 pub mod dst;
+pub mod errors;
 pub mod reference;
 pub mod source;
 pub mod transport;

@@ -4,7 +4,7 @@
 
 use crate::oci::digest::Digest;
 
-use super::errors::DockerReferenceError;
+use super::errors::ReferenceError;
 use super::parser::{ANCHORED_CAPTURING_NAME_RE, ANCHORED_REFERENCE_RE};
 use super::types::{DockerReference, DockerReferenceResult, DockerRepo};
 
@@ -27,7 +27,7 @@ const MAX_REFNAME_LEN: usize = 256;
 pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
     if input_ref.is_empty() {
         log::error!("Input reference is Empty!");
-        return Err(DockerReferenceError::EmptyNameError);
+        return Err(ReferenceError::EmptyName);
     }
 
     let (name, mut tag, digest): (String, String, &str);
@@ -39,13 +39,13 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                     "Reference '{}' is not in '[domain]/name[:tag][@digest]' format.",
                     input_ref
                 );
-                return Err(DockerReferenceError::InvalidFormatError);
+                return Err(ReferenceError::InvalidFormat);
             }
 
             name = String::from(c.get(1).map_or("", |m| m.as_str()));
             if name.is_empty() {
                 log::error!("Name part of the reference is empty!");
-                return Err(DockerReferenceError::EmptyNameError);
+                return Err(ReferenceError::EmptyName);
             }
 
             tag = String::from(c.get(2).map_or("", |m| m.as_str()));
@@ -58,7 +58,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                 Some(cn) => {
                     if cn.len() != 3 {
                         log::error!("Parsed name: '{}' not in canonical format!", name);
-                        return Err(DockerReferenceError::NameNotCanonicalError);
+                        return Err(ReferenceError::NameNotCanonical);
                     }
 
                     domain = String::from(cn.get(1).map_or("", |m| m.as_str()));
@@ -86,7 +86,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                             path_name.len(),
                             MAX_REFNAME_LEN
                         );
-                        return Err(DockerReferenceError::NameTooLongError);
+                        return Err(ReferenceError::NameTooLong);
                     }
                     log::debug!("Resolved Pathname is : '{}'", path_name);
 
@@ -110,10 +110,10 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         input_ref: String::from(input_ref),
                     })
                 }
-                None => Err(DockerReferenceError::NameNotCanonicalError),
+                None => Err(ReferenceError::NameNotCanonical),
             }
         }
-        None => Err(DockerReferenceError::InvalidFormatError),
+        None => Err(ReferenceError::InvalidFormat),
     }
 }
 
@@ -156,7 +156,7 @@ mod tests {
             },
             ParseTC {
                 input_ref: "",
-                output_ref_result: Err(DockerReferenceError::EmptyNameError),
+                output_ref_result: Err(ReferenceError::EmptyName),
             },
         ];
 
@@ -164,7 +164,7 @@ mod tests {
         really_long_refname.push_str("a");
         let really_long_name_tc = ParseTC {
             input_ref: &really_long_refname,
-            output_ref_result: Err(DockerReferenceError::NameTooLongError),
+            output_ref_result: Err(ReferenceError::NameTooLong),
         };
         test_cases.push(really_long_name_tc);
 

@@ -2,6 +2,9 @@
 
 //! Docker client for Image registry
 
+use std::error::Error as StdError;
+use std::fmt;
+
 use hyper::http::{HeaderValue, StatusCode};
 use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
@@ -18,17 +21,35 @@ const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
 const DOCKER_MANIFESTS_PATH_FMT: &str = "/v2/{}/manifests/{}";
 const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
 
+#[derive(Debug)]
+pub(super) struct ClientError(String);
+
+impl fmt::Display for ClientError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Client Error: {}", self.0)
+    }
+}
+
+impl StdError for ClientError {}
+
+impl From<HyperError> for ClientError {
+    fn from(e: HyperError) -> Self {
+        ClientError(format!("Hyper Error: {}", e))
+    }
+}
+
 /// Structure representing a Client for Docker Repository
 #[derive(Debug, Clone)]
 pub(super) struct DockerClient {
     https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
     repo_url: Uri,
+    // FIXME: This should be a Map of <scope, BearerToken>
     bearer_token: Option<BearerToken>,
 }
 
 impl DockerClient {
     /// Creates a New Docker Client from the Repository URL
-    pub fn new(repository: &str) -> Self {
+    pub(super) fn new(repository: &str) -> Self {
         // We let panic if the Repo URL is not parseable
 
         let repo_url: Uri;
@@ -58,61 +79,11 @@ impl DockerClient {
         }
     }
 
-    #[doc(hidden)]
-    /// Performs API version check against the Docker Registry V2 API.
-    ///
-    /// Note: Only Docker Registry V2 is supported.
-    pub(super) async fn get_bearer_token_for_path_scope(
-        &mut self,
-        path: &str,
-        scope: Option<&str>,
-    ) -> Result<(), HyperError> {
-        let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
-
-        log::debug!("Sending Request to {}", ping_url);
-
-        let response = self.https_client.get(ping_url).await.unwrap();
-
-        log::debug!("Received Response: {}", response.status());
-
-        if response.status() == StatusCode::UNAUTHORIZED {
-            log::debug!("Received 401. Checking For 'WWW-Authenticate' header.");
-            if let Some(www_auth_header) = response.headers().get("WWW-Authenticate") {
-                log::debug!(
-                    "Got WWW-Authenticate Header: {}",
-                    www_auth_header.to_str().unwrap()
-                );
-
-                let scope = if scope.is_none() {
-                    "pull"
-                } else {
-                    scope.unwrap()
-                };
-
-                let challenge_url = self
-                    .prepare_auth_challenge_url(path, scope, www_auth_header)
-                    .parse::<Uri>()
-                    .unwrap();
-                log::debug!("{}", challenge_url);
-                let auth_response = self.https_client.get(challenge_url).await?;
-                log::debug!("{}", auth_response.status());
-
-                let body = to_bytes(auth_response).await?;
-                let bearer_token =
-                    serde_json::from_slice::<'_, BearerToken>(body.as_ref()).unwrap();
-                log::debug!("{:#?}", bearer_token);
-
-                self.bearer_token = Some(bearer_token);
-            }
-        }
-        Ok(())
-    }
-
     pub(super) async fn do_get_manifest(
         &mut self,
         path: &str,
         digest_or_tag: &str,
-    ) -> Result<(), HyperError> {
+    ) -> Result<(), ClientError> {
         let manifest_path = format!("{}{}/{}", self.repo_url, path, digest_or_tag);
         log::debug!("{}", manifest_path);
 
@@ -122,8 +93,78 @@ impl DockerClient {
         Ok(())
     }
 
+    #[doc(hidden)]
+    /// Performs API version check against the Docker Registry V2 API.
+    ///
+    /// Note: Only Docker Registry V2 is supported.
+    async fn get_bearer_token_for_path_scope(
+        &mut self,
+        path: &str,
+        scope: Option<&str>,
+    ) -> Result<(), ClientError> {
+        log::debug!(
+            "Getting Bearer Token for Path: '{}', Scope: '{}'",
+            path,
+            scope.or(Some("")).unwrap()
+        );
+
+        let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
+
+        log::trace!("Sending Request to {}", ping_url);
+        let response = self.https_client.get(ping_url).await?;
+        log::trace!("Received Response: {}", response.status());
+
+        if response.status() == StatusCode::UNAUTHORIZED {
+            log::trace!("Received 401. Checking For 'WWW-Authenticate' header.");
+            if let Some(www_auth_header) = response.headers().get("WWW-Authenticate") {
+                log::trace!(
+                    "Got WWW-Authenticate Header: {}",
+                    www_auth_header.to_str().unwrap()
+                );
+
+                let scope = if scope.is_none() {
+                    log::trace!("Empty Scope, defaulting to 'pull'.");
+                    "pull"
+                } else {
+                    scope.unwrap()
+                };
+
+                log::trace!("Sending Challenge Response.");
+                let challenge_url = self
+                    .prepare_auth_challenge_url(path, scope, www_auth_header)
+                    .parse::<Uri>()
+                    .unwrap();
+                let auth_response = self.https_client.get(challenge_url).await?;
+                let bearer_token = serde_json::from_slice::<'_, BearerToken>(
+                    to_bytes(auth_response).await?.as_ref(),
+                )
+                .unwrap();
+
+                self.bearer_token = Some(bearer_token);
+                log::debug!("Bearer Token for Client Saved!");
+                return Ok(());
+            } else {
+                let errstr = format!(
+                    "No 'WWW-Authenticate' Header found with {}",
+                    response.status()
+                );
+                log::error!("{}", &errstr);
+                return Err(ClientError(errstr));
+            }
+        } else if response.status().is_success() {
+            // unlikely path
+            log::warn!("No Bearer Token for Client, but Ping response Success!. Bearer Token Not Obtained (and saved)!");
+            return Ok(());
+        } else {
+            let errstr = format!("Error Getting Token: {}", response.status());
+            log::error!("{}", &errstr);
+            return Err(ClientError(errstr));
+        }
+    }
+
     // FIXME: This is hard-coded right now, when we can parse the header properly,
     // use parsed values.
+    #[inline]
     fn prepare_auth_challenge_url(&self, path: &str, scope: &str, _: &HeaderValue) -> String {
         format!(
             "https://auth.docker.io/token?repository:{}:{}&service=registry.docker.io",
