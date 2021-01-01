@@ -40,6 +40,12 @@ impl From<HyperError> for ClientError {
     }
 }
 
+impl From<serde_json::Error> for ClientError {
+    fn from(e: serde_json::Error) -> Self {
+        ClientError(format!("Serde JSON Error: {}", e))
+    }
+}
+
 impl From<ClientError> for ImageError {
     fn from(e: ClientError) -> Self {
         ImageError::new().with(e)
@@ -137,7 +143,7 @@ impl DockerClient {
                 .to_string();
             let manifest = to_bytes(response).await?;
             Ok(ImageManifest {
-                manifest: manifest.to_vec(),
+                manifest: serde_json::from_slice(&manifest)?,
                 mime_type,
             })
         } else {

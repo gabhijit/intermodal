@@ -86,7 +86,7 @@ pub trait ImageSource {
 /// A struct representing Image Manfest
 #[derive(Debug)]
 pub struct ImageManifest {
-    pub manifest: Vec<u8>,
+    pub manifest: serde_json::Value,
     pub mime_type: String,
 }
 
