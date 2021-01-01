@@ -33,7 +33,7 @@ pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference 
 
     if tokens.len() != 2 {
         log::error!("Input Image name '{}' is invalid.", image_name);
-        return Err(ImageError::ParseError);
+        return Err(ImageError::new()); //  FIXME: Get a detailed info
     }
 
     {

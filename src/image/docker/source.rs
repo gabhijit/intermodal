@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 
-use crate::image::types::errors::{ImageError, ImageResult};
+use crate::image::types::errors::ImageResult;
 use crate::image::types::{ImageManifest, ImageReference, ImageSource};
 use crate::oci::digest::Digest;
 
@@ -28,12 +28,10 @@ impl DockerSource {
             &digest_str
         };
 
-        let _ = self
+        Ok(self
             .client
             .do_get_manifest(self.reference.path(), digest_or_tag)
-            .await;
-
-        Err(ImageError::GenericError)
+            .await?)
     }
 }
 
@@ -44,8 +42,6 @@ impl ImageSource for DockerSource {
     }
 
     async fn get_manifest(&mut self, _digest: Option<&Digest>) -> ImageResult<ImageManifest> {
-        let _ = self.cached_or_fetch_manifest().await;
-
-        Err(ImageError::GenericError)
+        Ok(self.cached_or_fetch_manifest().await?)
     }
 }

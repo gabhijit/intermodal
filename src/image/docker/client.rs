@@ -8,13 +8,14 @@ use std::fmt;
 use hyper::http::{HeaderValue, StatusCode};
 use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
-    Uri,
+    Request, Uri,
 };
+use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 
-use hyper_tls::HttpsConnector;
-
 use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
+use crate::image::types::errors::ImageError;
+use crate::image::types::ImageManifest;
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
@@ -35,6 +36,12 @@ impl StdError for ClientError {}
 impl From<HyperError> for ClientError {
     fn from(e: HyperError) -> Self {
         ClientError(format!("Hyper Error: {}", e))
+    }
+}
+
+impl From<ClientError> for ImageError {
+    fn from(e: ClientError) -> Self {
+        ImageError::new().with(e)
     }
 }
 
@@ -83,14 +90,51 @@ impl DockerClient {
         &mut self,
         path: &str,
         digest_or_tag: &str,
-    ) -> Result<(), ClientError> {
-        let manifest_path = format!("{}{}/{}", self.repo_url, path, digest_or_tag);
-        log::debug!("{}", manifest_path);
-
+    ) -> Result<ImageManifest, ClientError> {
         if self.bearer_token.is_none() {
             self.get_bearer_token_for_path_scope(path, None).await?
         }
-        Ok(())
+
+        if self.bearer_token.is_none() {
+            let errstr = "Invalid Bearer Token Still!".to_string();
+            log::error!("{}", &errstr);
+            return Err(ClientError(errstr));
+        }
+
+        let manifest_url_path = format!("{}v2/{}/manifests/{}", self.repo_url, path, digest_or_tag);
+        log::debug!("Getting Manifest: {}", manifest_url_path);
+
+        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        let request = Request::builder()
+            .method("GET")
+            .uri(manifest_url_path)
+            .header("Authorization", auth_header)
+            .body(Body::from(""))
+            .unwrap();
+
+        log::debug!("Sending Request: {:#?}", request);
+        let response = self.https_client.request(request).await?;
+        let status = response.status();
+
+        if status.is_success() {
+            log::info!("Manifest Downloaded Successfully!");
+            let mime_type = response
+                .headers()
+                .get("Content-Type")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            let manifest = to_bytes(response).await?;
+            Ok(ImageManifest {
+                manifest: manifest.to_vec(),
+                mime_type,
+            })
+        } else {
+            let errstr = format!("Error in downloading Manifest: {}", status);
+            log::error!("{}", &errstr);
+            Err(ClientError(errstr))
+        }
     }
 
     #[doc(hidden)]
@@ -167,7 +211,7 @@ impl DockerClient {
     #[inline]
     fn prepare_auth_challenge_url(&self, path: &str, scope: &str, _: &HeaderValue) -> String {
         format!(
-            "https://auth.docker.io/token?repository:{}:{}&service=registry.docker.io",
+            "https://auth.docker.io/token?scope=repository:{}:{}&service=registry.docker.io",
             path, scope
         )
     }

@@ -84,9 +84,10 @@ pub trait ImageSource {
 }
 
 /// A struct representing Image Manfest
+#[derive(Debug)]
 pub struct ImageManifest {
-    manifest: Vec<u8>,
-    mime_type: &'static str,
+    pub manifest: Vec<u8>,
+    pub mime_type: String,
 }
 
 pub mod errors;

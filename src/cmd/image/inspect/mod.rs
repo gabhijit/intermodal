@@ -43,12 +43,12 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
         );
         let mut image_src = image_ref.new_image_source().unwrap();
         log::debug!("calling get_manifest");
-        let _ = image_src.get_manifest(None).await;
+        let manifest = image_src.get_manifest(None).await?;
+        println!("{:?}", manifest);
 
         Ok(())
     } else {
         let err = format!("Invalid Image Name: {}", image_name);
-
         log::error!("{}", &err);
         Err(io::Error::new(io::ErrorKind::InvalidInput, err))
     }

@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+use crate::image::types::errors::ImageError;
+
 #[derive(Debug, PartialEq, Eq)]
 #[allow(dead_code)]
 pub(crate) enum ReferenceError {
@@ -33,3 +35,9 @@ impl fmt::Display for ReferenceError {
     }
 }
 impl Error for ReferenceError {}
+
+impl From<ReferenceError> for ImageError {
+    fn from(e: ReferenceError) -> Self {
+        ImageError::new().with(e)
+    }
+}
