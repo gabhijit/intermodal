@@ -1,4 +1,3 @@
-#![allow(non_upper_case_globals)]
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -69,30 +68,30 @@ pub struct Manifest {
     annotations: Option<HashMap<String, String>>,
 }
 
-pub const MediaTypeDescriptor: &str = "application/vnd.oci.descriptor.v1+json";
+pub const MEDIA_TYPE_DESCRIPTOR: &str = "application/vnd.oci.descriptor.v1+json";
 
-pub const MediaTypeLayoutHeader: &str = "application/vnd.oci.layout.header.v1+json";
+pub const MEDIA_TYPE_LAYOUT_HEADER: &str = "application/vnd.oci.layout.header.v1+json";
 
-pub const MediaTypeImageManifest: &str = "application/vnd.oci.image.manifest.v1+json";
+pub const MEDIA_TYPE_IMAGE_MANIFEST: &str = "application/vnd.oci.image.manifest.v1+json";
 
-pub const MediaTypeImageIndex: &str = "application/vnd.oci.image.index.v1+json";
+pub const MEDIA_TYPE_IMAGE_INDEX: &str = "application/vnd.oci.image.index.v1+json";
 
-pub const MediaTypeImageLayer: &str = "application/vnd.oci.image.layer.v1.tar";
+pub const MEDIA_TYPE_IMAGE_LAYER: &str = "application/vnd.oci.image.layer.v1.tar";
 
-pub const MediaTypeImageLayerGzip: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
+pub const MEDIA_TYPE_IMAGE_LAYER_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
 
-pub const MediaTypeImageLayerZstd: &str = "application/vnd.oci.image.layer.v1.tar+zstd";
+pub const MEDIA_TYPE_IMAGE_LAYER_ZSTD: &str = "application/vnd.oci.image.layer.v1.tar+zstd";
 
-pub const MediaTypeImageLayerNonDistributable: &str =
+pub const MEDIA_TYPE_IMAGE_LAYER_NON_DISTRIBUTABLE: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar";
 
-pub const MediaTypeImageLayerNonDistributableGzip: &str =
+pub const MEDIA_TYPE_IMAGE_LAYER_NON_DISTRIBUTABLE_GZIP: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip";
 
-pub const MediaTypeImageLayerNonDistributableZstd: &str =
+pub const MEDIA_TYPE_IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD: &str =
     "application/vnd.oci.image.layer.nondistributable.v1.tar+zstd";
 
-pub const MediaTypeImageConfig: &str = "application/vnd.oci.image.config.v1+json";
+pub const MEDIA_TYPE_IMAGE_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageConfig {

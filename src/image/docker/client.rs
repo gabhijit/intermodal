@@ -16,11 +16,12 @@ use serde::Deserialize;
 use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
 use crate::image::types::errors::ImageError;
 use crate::image::types::ImageManifest;
+use crate::oci::image::spec_v1::{MEDIA_TYPE_IMAGE_INDEX, MEDIA_TYPE_IMAGE_MANIFEST};
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
-const DOCKER_TAGS_PATH_FMT: &str = "/v2/{}/tags/list";
-const DOCKER_MANIFESTS_PATH_FMT: &str = "/v2/{}/manifests/{}";
-const DOCKER_BLOBS_PATH_FMT: &str = "/v2/{}/blobs/{}";
+const MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST: &str =
+    "application/vnd.docker.distribution.manifest.v2+json";
+const MEDIA_TYPE_DOCKER_V2_LIST: &str = "application/vnd.docker.distribution.manifest.list.v2+json";
 
 #[derive(Debug)]
 pub(super) struct ClientError(String);
@@ -105,10 +106,19 @@ impl DockerClient {
         log::debug!("Getting Manifest: {}", manifest_url_path);
 
         let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        let accept_header = vec![
+            MEDIA_TYPE_IMAGE_INDEX,
+            MEDIA_TYPE_IMAGE_MANIFEST,
+            MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST,
+            MEDIA_TYPE_DOCKER_V2_LIST,
+        ]
+        .join(", ");
+        log::debug!("accept_header: {}", accept_header);
         let request = Request::builder()
             .method("GET")
             .uri(manifest_url_path)
             .header("Authorization", auth_header)
+            .header("Accept", accept_header)
             .body(Body::from(""))
             .unwrap();
 
