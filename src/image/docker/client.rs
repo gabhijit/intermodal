@@ -5,6 +5,7 @@
 use std::error::Error as StdError;
 use std::fmt;
 
+use chrono::{DateTime, Duration, Utc};
 use hyper::http::{HeaderValue, StatusCode};
 use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
@@ -93,17 +94,22 @@ impl DockerClient {
         }
     }
 
+    /// Actually Get the manifest using the current client
     pub(super) async fn do_get_manifest(
         &mut self,
         path: &str,
         digest_or_tag: &str,
     ) -> Result<ImageManifest, ClientError> {
         if self.bearer_token.is_none() {
+            log::trace!("Bearer token is None, acquiring.");
             self.get_bearer_token_for_path_scope(path, None).await?
+        } else if !self.bearer_token.as_ref().unwrap().is_still_valid() {
+            log::trace!("Bearer token expired, renewing.");
+            self.get_bearer_token_for_path_scope(path, None).await?;
         }
 
-        if self.bearer_token.is_none() {
-            let errstr = "Invalid Bearer Token Still!".to_string();
+        if self.bearer_token.is_none() || !self.bearer_token.as_ref().unwrap().is_still_valid() {
+            let errstr = "Invalid Bearer Token Still! Bailing out!".to_string();
             log::error!("{}", &errstr);
             return Err(ClientError(errstr));
         }
@@ -156,7 +162,11 @@ impl DockerClient {
     #[doc(hidden)]
     /// Performs API version check against the Docker Registry V2 API.
     ///
+    /// Once the bearer token is obtained, it is cached at the client, so that we do not have to
+    /// get one for every API use.
+    ///
     /// Note: Only Docker Registry V2 is supported.
+    ///
     async fn get_bearer_token_for_path_scope(
         &mut self,
         path: &str,
@@ -200,6 +210,12 @@ impl DockerClient {
                 )
                 .unwrap();
 
+                log::trace!(
+                    "Got Bearer Token: Issued At: {}, Expiring in: {}",
+                    bearer_token.issued_at,
+                    bearer_token.expires_in
+                );
+                let _ = self.bearer_token; // Get into a variable to drop it
                 self.bearer_token = Some(bearer_token);
                 log::debug!("Bearer Token for Client Saved!");
                 return Ok(());
@@ -241,10 +257,24 @@ struct BearerToken {
     expires_in: u16,
 }
 
+impl BearerToken {
+    fn is_still_valid(&self) -> bool {
+        // If docker suddenly stops sending RFC 3339 compliant timestamps, let it panic!
+        let expires_at = DateTime::parse_from_rfc3339(&self.issued_at)
+            .unwrap()
+            .checked_add_signed(Duration::seconds(self.expires_in.into()))
+            .unwrap();
+        let now = Utc::now();
+        log::trace!("Expires At: {}, Now: {}", expires_at, now);
+        expires_at > now
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
+    use chrono::Utc;
 
     #[test]
     fn test_new_client_success() {
@@ -252,6 +282,21 @@ mod tests {
         let client = DockerClient::new(repo_url);
 
         assert_eq!(client.repo_url, repo_url);
+    }
+
+    #[test]
+    fn test_bearer_token_valid() {
+        let b = BearerToken {
+            token: "some random token".to_string(),
+            access_token: "some random access token".to_string(),
+            issued_at: Utc::now().to_rfc3339(),
+            expires_in: 2,
+        };
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        assert!(b.is_still_valid());
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        assert!(!b.is_still_valid());
     }
 
     #[tokio::test]
