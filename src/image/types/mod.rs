@@ -83,6 +83,19 @@ pub trait ImageSource {
     //fn close(&self) -> ImageResult<()>;
 }
 
+/// A trait that should be implemented by all Images.
+///
+/// This trait is an API for inspecting images. An image is basically represented by ImageSource
+/// and instance Digest. This can be a manifest list or a single instance.
+#[async_trait]
+pub trait Image {
+    /// Reference of the 'image source'.
+    fn reference(&self) -> Box<dyn ImageReference>;
+
+    /// Manifest of the image
+    fn manifest(&self) -> ImageResult<ImageManifest>;
+}
+
 /// A struct representing Image Manfest
 #[derive(Debug)]
 pub struct ImageManifest {

@@ -11,5 +11,6 @@
 //! [Container Images Go library](https://github.com/containers/image/)
 
 pub mod docker;
+pub mod manifest;
 pub mod transports;
 pub mod types;
