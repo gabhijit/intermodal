@@ -1,6 +1,7 @@
-//! Structs Describing Docker Manifests
+//! Structs Describing Docker Schema2 Manifest etc.
 //!
 //! Note: We are supporting only the 'list' and 'schema2' descriptors from docker/distribution
+
 use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
