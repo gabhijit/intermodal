@@ -12,5 +12,6 @@
 
 pub mod docker;
 pub mod manifest;
+mod platform;
 pub mod transports;
 pub mod types;
