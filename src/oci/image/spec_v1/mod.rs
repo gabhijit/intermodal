@@ -7,44 +7,52 @@ use crate::oci::digest::Digest;
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    mediatype: Option<String>,
+    pub mediatype: Option<String>,
 
-    digest: Digest,
+    pub digest: Digest,
 
-    size: i64,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    urls: Option<Vec<String>>,
+    pub size: i64,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    platform: Option<Platform>,
+    pub urls: Option<Vec<String>>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub platform: Option<Platform>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Platform {
-    architecture: String,
+    pub architecture: String,
 
-    os: String,
+    pub os: String,
+
+    #[serde(
+        default,
+        rename = "os.version",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub os_version: Option<String>,
+
+    #[serde(
+        default,
+        rename = "os.features",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub os_features: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    os_version: Option<String>,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    os_features: Option<Vec<String>>,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    variant: Option<String>,
+    pub variant: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Index {
     #[serde(rename = "schemaVersion")]
-    version: u8,
+    pub version: u8,
 
-    manifests: Vec<Descriptor>,
+    pub manifests: Vec<Descriptor>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    annotations: Option<HashMap<String, String>>,
+    pub annotations: Option<HashMap<String, String>>,
 }
 
 // FIXME: Not sure what to do with the constants?
@@ -52,20 +60,20 @@ pub struct Index {
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageLayout {
     #[serde(rename = "imageLayoutVersion")]
-    img_layout_version: String,
+    pub img_layout_version: String,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Manifest {
     #[serde(rename = "schemaVersion")]
-    version: u8,
+    pub version: u8,
 
-    config: Descriptor,
+    pub config: Descriptor,
 
-    layers: Vec<Descriptor>,
+    pub layers: Vec<Descriptor>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    annotations: Option<HashMap<String, String>>,
+    pub annotations: Option<HashMap<String, String>>,
 }
 
 pub const MEDIA_TYPE_DESCRIPTOR: &str = "application/vnd.oci.descriptor.v1+json";
@@ -96,89 +104,90 @@ pub const MEDIA_TYPE_IMAGE_CONFIG: &str = "application/vnd.oci.image.config.v1+j
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageConfig {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "User")]
-    user: Option<String>,
+    pub user: Option<String>,
 
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "ExposedPorts"
     )]
-    exposed_ports: Option<HashMap<String, String>>, // FIXME: Use correct type
+    pub exposed_ports: Option<HashMap<String, String>>, // FIXME: Use correct type
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Env")]
-    env: Option<String>,
+    pub env: Option<String>,
 
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "EntryPoint"
     )]
-    entry_point: Option<Vec<String>>,
+    pub entry_point: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Cmd")]
-    cmd: Option<String>,
+    pub cmd: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Volumes")]
-    volumes: Option<HashMap<String, String>>, // FIXME: Use correct type
+    pub volumes: Option<HashMap<String, String>>, // FIXME: Use correct type
 
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "WorkingDir"
     )]
-    working_dir: Option<String>,
+    pub working_dir: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Labels")]
-    labels: Option<HashMap<String, String>>,
+    pub labels: Option<HashMap<String, String>>,
 
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "StopSignal"
     )]
-    stop_signal: Option<String>,
+    pub stop_signal: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct RootFS {
-    type_: String,
+    #[serde(default, rename = "type")]
+    pub type_: String,
 
-    diff_ids: Vec<String>, // FIXME: This should be proper digest type.
+    pub diff_ids: Vec<String>, // FIXME: This should be proper digest type.
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct History {
-    created: DateTime<Utc>,
+    pub created: DateTime<Utc>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    created_by: Option<String>,
+    pub created_by: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    comment: Option<String>,
+    pub comment: Option<String>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    empty_layer: Option<bool>,
+    pub empty_layer: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Image {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    created: Option<DateTime<Utc>>,
+    pub created: Option<DateTime<Utc>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
 
-    architecture: String,
+    pub architecture: String,
 
-    os: String,
+    pub os: String,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    config: Option<ImageConfig>,
+    pub config: Option<ImageConfig>,
 
-    rootfs: RootFS,
+    pub rootfs: RootFS,
 
-    history: Option<History>,
+    pub history: Option<History>,
 }
