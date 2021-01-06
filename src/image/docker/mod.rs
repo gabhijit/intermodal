@@ -11,6 +11,7 @@
 pub mod client;
 pub mod dst;
 pub mod errors;
+pub mod image;
 mod manifest;
 pub mod reference;
 pub mod source;

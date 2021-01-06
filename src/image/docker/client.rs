@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 //! Docker client for Image registry
 
 use std::error::Error as StdError;

@@ -3,9 +3,9 @@
 //! Types implementing Docker Reference
 
 use crate::image::docker::{
-    client::DockerClient, source::DockerSource, transport::DockerTransport,
+    client::DockerClient, image::DockerImage, source::DockerSource, transport::DockerTransport,
 };
-use crate::image::types::{ImageReference, ImageResult, ImageSource, ImageTransport};
+use crate::image::types::{Image, ImageReference, ImageResult, ImageSource, ImageTransport};
 use crate::oci::digest::Digest;
 
 use super::errors::ReferenceError;
@@ -62,6 +62,19 @@ impl ImageReference for DockerReference {
         Ok(Box::new(DockerSource {
             reference: self.clone(),
             client,
+        }))
+    }
+
+    /// Returns an object implementing trait 'Image' in our case 'DockerImage'
+    fn new_image(&self) -> ImageResult<Box<dyn Image>> {
+        let source = self.new_image_source()?;
+
+        // FIXME: Get a proper manifest.
+        let manifest: Vec<u8> = vec![];
+
+        Ok(Box::new(DockerImage {
+            source: source,
+            manifest,
         }))
     }
 }

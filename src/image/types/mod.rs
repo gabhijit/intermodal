@@ -56,6 +56,9 @@ pub trait ImageReference: std::fmt::Debug {
 
     /// Returns an Image Source from the Reference provided or an Error.
     fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource>>;
+
+    /// Returns the Image
+    fn new_image(&self) -> ImageResult<Box<dyn Image>>;
     // FIXME: implement following methods
     // fn docker_reference(&self) -> Box<dyn NamedRef>;
 
@@ -63,7 +66,6 @@ pub trait ImageReference: std::fmt::Debug {
 
     // fn policy_configuration_namespaces(&self) -> Vec<String>;
 
-    // fn new_image<T>(&self) -> T;
     // fn new_image_destination(&self) -> Result
 }
 
@@ -93,14 +95,14 @@ pub trait Image: std::fmt::Debug {
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
 
-    /// Manifest of the image
-    fn manifest(&self) -> ImageResult<ImageManifest>;
+    // Manifest of the image
+    // FIXME: fn manifest(&self) -> ImageResult<ImageManifest>;
 }
 
 /// A struct representing Image Manfest
 #[derive(Debug)]
 pub struct ImageManifest {
-    pub manifest: serde_json::Value,
+    pub manifest: Vec<u8>,
     pub mime_type: String,
 }
 

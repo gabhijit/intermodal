@@ -16,21 +16,29 @@ pub(crate) struct DockerSource {
 }
 
 impl DockerSource {
-    async fn cached_or_fetch_manifest(&mut self) -> ImageResult<ImageManifest> {
-        let digest_str = self
-            .reference
-            .digest
-            .as_ref()
-            .map_or_else(|| "".to_string(), |x| x.to_string());
-        let digest_or_tag = if self.reference.digest.is_none() {
+    async fn cached_or_fetch_manifest(
+        &mut self,
+        digest: Option<&Digest>,
+    ) -> ImageResult<ImageManifest> {
+        let digest_or_tag = if digest.is_none() {
+            if self.reference.digest.is_none() {
+                self.reference.tag.clone()
+            } else {
+                self.reference.digest.as_ref().unwrap().to_string()
+            }
+        } else {
+            digest.unwrap().to_string()
+        };
+
+        /* let digest_or_tag = if self.reference.digest.is_none() {
             &self.reference.tag
         } else {
             &digest_str
-        };
+        };*/
 
         Ok(self
             .client
-            .do_get_manifest(self.reference.path(), digest_or_tag)
+            .do_get_manifest(self.reference.path(), &digest_or_tag)
             .await?)
     }
 }
@@ -41,7 +49,7 @@ impl ImageSource for DockerSource {
         Box::new(self.reference.clone())
     }
 
-    async fn get_manifest(&mut self, _digest: Option<&Digest>) -> ImageResult<ImageManifest> {
-        Ok(self.cached_or_fetch_manifest().await?)
+    async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest> {
+        Ok(self.cached_or_fetch_manifest(digest).await?)
     }
 }

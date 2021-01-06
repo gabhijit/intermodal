@@ -3,7 +3,10 @@
 use lazy_static::lazy_static;
 
 use crate::image::docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST};
-use crate::image::types::{errors::ImageResult, BlobInfo};
+use crate::image::types::{
+    errors::{ImageError, ImageResult},
+    BlobInfo, ImageManifest, ImageSource,
+};
 use crate::oci::image::spec_v1::{
     Image as OCISpecv1Image, MEDIA_TYPE_IMAGE_INDEX, MEDIA_TYPE_IMAGE_MANIFEST,
 };
@@ -33,4 +36,11 @@ pub(super) trait GenericManifest {
     fn oci_config(&self) -> ImageResult<OCISpecv1Image>;
 
     fn layer_infos(&self) -> Vec<BlobInfo>;
+}
+
+pub(super) fn manifest_instance_from_blob(
+    src: &Box<dyn ImageSource>,
+    manifest: &ImageManifest,
+) -> ImageResult<Box<dyn GenericManifest>> {
+    Err(ImageError::new())
 }
