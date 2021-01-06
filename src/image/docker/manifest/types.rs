@@ -6,7 +6,7 @@ use crate::image::types::ImageSource;
 
 use super::schema2;
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub(crate) struct DockerManifestSchema2 {
     source: Box<dyn ImageSource>,
     schema: schema2::Schema2,

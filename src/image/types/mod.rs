@@ -18,7 +18,7 @@ use crate::oci::digest::Digest;
 pub type ImageResult<T> = Result<T, errors::ImageError>;
 
 /// A trait that is to be implemented by All supported Image Transports
-pub trait ImageTransport {
+pub trait ImageTransport: std::fmt::Debug {
     /// Name of the Transport
     fn name(&self) -> String;
 
@@ -43,7 +43,7 @@ impl Clone for Box<dyn ImageTransport + Send + Sync> {
 }
 
 /// A trait that should be implemented by All Image References
-pub trait ImageReference {
+pub trait ImageReference: std::fmt::Debug {
     /// Returns the `ImageTransport` providing this Image Reference.
     fn transport(&self) -> Box<dyn ImageTransport + Send + Sync>;
 
@@ -71,7 +71,7 @@ pub trait ImageReference {
 ///
 /// An ImageSource is typically useful while copying the images.
 #[async_trait]
-pub trait ImageSource {
+pub trait ImageSource: std::fmt::Debug {
     /// Returns a Reference corresponding to this particular ImageSource.
     fn reference(&self) -> Box<dyn ImageReference>;
 
@@ -89,7 +89,7 @@ pub trait ImageSource {
 /// This trait is an API for inspecting images. An image is basically represented by ImageSource
 /// and instance Digest. This can be a manifest list or a single instance.
 #[async_trait]
-pub trait Image {
+pub trait Image: std::fmt::Debug {
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
 
@@ -122,6 +122,7 @@ enum LayerCrypto {
     Decrypt,
 }
 
+#[derive(Debug)]
 pub struct BlobInfo {
     pub digest: Digest,
 
