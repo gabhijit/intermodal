@@ -63,79 +63,79 @@ pub struct Schema2HealthConfig {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2Config {
     #[serde(rename = "Hostname")]
-    hostname: String,
+    pub hostname: String,
 
     #[serde(rename = "Domainname")]
-    domainname: String,
+    pub domainname: String,
 
     #[serde(rename = "User")]
-    user: String,
+    pub user: String,
 
     #[serde(rename = "AttachStdin")]
-    attach_stdin: bool,
+    pub attach_stdin: bool,
 
     #[serde(rename = "AttachStdout")]
-    attach_stdout: bool,
+    pub attach_stdout: bool,
 
     #[serde(rename = "AttachStderr")]
-    attach_stderr: bool,
+    pub attach_stderr: bool,
 
     #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
-    exposed_ports: Option<String>, // FIXME:
+    pub exposed_ports: Option<String>, // FIXME:
 
     #[serde(rename = "Tty")]
-    tty: bool,
+    pub tty: bool,
 
     #[serde(rename = "OpenStdin")]
-    open_stdin: bool,
+    pub open_stdin: bool,
 
     #[serde(rename = "StdinOnce")]
-    stdin_once: bool,
+    pub stdin_once: bool,
 
     #[serde(rename = "Env")]
-    env: Vec<String>,
+    pub env: Vec<String>,
 
     #[serde(rename = "Cmd")]
-    cmd: String,
+    pub cmd: String,
 
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
-    health_check: Option<Schema2HealthConfig>,
+    pub health_check: Option<Schema2HealthConfig>,
 
     #[serde(rename = "ArgsEscaped", skip_serializing_if = "Option::is_none")]
-    args_escaped: Option<bool>,
+    pub args_escaped: Option<bool>,
 
     #[serde(rename = "Image")]
-    image: String,
+    pub image: String,
 
     #[serde(rename = "Volumes")]
-    volumes: Vec<String>,
+    pub volumes: Vec<String>,
 
     #[serde(rename = "WorkingDir")]
-    working_dir: String,
+    pub working_dir: String,
 
     #[serde(rename = "EntryPoint")]
-    entry_point: String,
+    pub entry_point: String,
 
     #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
-    network_disabled: Option<bool>,
+    pub network_disabled: Option<bool>,
 
     #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
-    mac_address: Option<String>,
+    pub mac_address: Option<String>,
 
     #[serde(rename = "OnBuild")]
-    on_build: Vec<String>,
+    pub on_build: Vec<String>,
 
     #[serde(rename = "Labels")]
-    labels: HashMap<String, String>,
+    pub labels: HashMap<String, String>,
 
     #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
-    stop_signal: Option<String>,
+    pub stop_signal: Option<String>,
 
     #[serde(rename = "StopTimeout", skip_serializing_if = "Option::is_none")]
-    stop_timeout: Option<i16>,
+    pub stop_timeout: Option<i16>,
 
     #[serde(rename = "Shell", skip_serializing_if = "Option::is_none")]
-    shell: Option<String>, // FIXME: &'static str?
+    pub shell: Option<String>, // FIXME: &'static str?
 }
 
 // FIXME: Get this right
@@ -143,55 +143,125 @@ pub struct Schema2Config {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2Image {
     #[serde(skip_serializing_if = "Option::is_none")]
-    id: Option<String>,
+    pub id: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    parent: Option<String>,
+    pub parent: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    comment: Option<String>,
-    created: DateTime<Utc>,
+    pub comment: Option<String>,
+
+    pub created: DateTime<Utc>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    container: Option<String>,
+    pub container: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    container_config: Option<Schema2Config>,
+    pub container_config: Option<Schema2Config>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    docker_version: Option<String>,
+    pub docker_version: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    config: Option<Schema2Config>,
+    pub config: Option<Schema2Config>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    architecture: Option<String>,
+    pub architecture: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    variant: Option<String>,
+    pub variant: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    os: Option<String>,
+    pub os: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    size: Option<i64>,
+    pub size: Option<i64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rootfs: Option<Schema2RootFS>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    history: Option<Schema2History>,
+
+    #[serde(rename = "os.version", skip_serializing_if = "Option::is_none")]
+    pub os_version: Option<String>,
+
+    #[serde(rename = "os.features", skip_serializing_if = "Option::is_none")]
+    pub os_features: Option<String>,
 }
 
 /// RootFS Struct
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2RootFS {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
 
-    diff_ids: Vec<Digest>,
+    pub diff_ids: Vec<Digest>,
 }
 
 /// Schema2History Struct
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2History {
-    created: DateTime<Utc>,
+    pub created: DateTime<Utc>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    author: Option<String>,
+    pub author: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    created_by: Option<String>,
+    pub created_by: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    comment: Option<String>,
+    pub comment: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    empty_layer: Option<bool>,
+    pub empty_layer: Option<bool>,
+}
+
+/// Schema2PlatformSpec Struct
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Schema2PlatformSpec {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub architecture: Option<String>,
+
+    pub os: String,
+
+    #[serde(rename = "os.version", skip_serializing_if = "Option::is_none")]
+    pub os_version: Option<String>,
+
+    #[serde(rename = "os.features", skip_serializing_if = "Option::is_none")]
+    pub os_features: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variant: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub features: Option<String>,
+}
+
+/// Schema2Manifest Descriptor
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Schema2ManifestDescriptor {
+    #[serde(rename = "mediaType")]
+    pub media_type: String,
+
+    pub size: i64,
+
+    pub digest: Digest,
+
+    platform: Schema2PlatformSpec,
+}
+
+/// Schema2List Structure
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Schema2List {
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: i8,
+
+    #[serde(rename = "mediaType")]
+    pub media_type: String,
+
+    pub manifests: Vec<Schema2ManifestDescriptor>,
 }

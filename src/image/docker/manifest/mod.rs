@@ -1,3 +1,3 @@
 //! Handling of Docker Manifest etc.
-mod schema2;
-mod types;
+pub(crate) mod schema2;
+pub(crate) mod types;

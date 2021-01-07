@@ -44,3 +44,12 @@ pub(super) fn manifest_instance_from_blob(
 ) -> ImageResult<Box<dyn GenericManifest>> {
     Err(ImageError::new())
 }
+
+pub(crate) fn is_manifest_list_or_index(manifest: &ImageManifest) -> bool {
+    let mime_type = &manifest.mime_type;
+
+    match mime_type.as_str() {
+        MEDIA_TYPE_DOCKER_V2_LIST | MEDIA_TYPE_IMAGE_INDEX => true,
+        _ => false,
+    }
+}

@@ -1,4 +1,4 @@
-//! Definitions of traits required for handling Images.
+//! Definitions of traits required for handling container Images.
 //!
 //! # Reference:
 //! [Types Implemented in Go](https://github.com/containers/image/blob/master/types/types.go)
@@ -55,7 +55,7 @@ pub trait ImageReference: std::fmt::Debug {
     fn string_within_transport(&self) -> String;
 
     /// Returns an Image Source from the Reference provided or an Error.
-    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource>>;
+    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource + Send + Sync>>;
 
     /// Returns the Image
     fn new_image(&self) -> ImageResult<Box<dyn Image>>;
@@ -77,7 +77,14 @@ pub trait ImageSource: std::fmt::Debug {
     /// Returns a Reference corresponding to this particular ImageSource.
     fn reference(&self) -> Box<dyn ImageReference>;
 
-    // Returns the manifest and it's MIME type
+    /// Get the manifest using this `ImageSource`.
+    ///
+    /// If the passed `Digest` is None, it means - Get the manifest for the reference, this source
+    /// points to. Usually it means getting the manifest for the 'digest' if present in the
+    /// reference or the 'tag' (default if not present) for the reference. When we explicitly pass
+    /// the Digest, we are interested in manifest corresponding to this specific digest (Which
+    /// usually is the manifest for the 'Image' if the previous manifest was a 'list' or 'index'
+    /// type.
     async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest>;
 
     // FIXME: implement following functions
@@ -96,11 +103,11 @@ pub trait Image: std::fmt::Debug {
     fn reference(&self) -> Box<dyn ImageReference>;
 
     // Manifest of the image
-    // FIXME: fn manifest(&self) -> ImageResult<ImageManifest>;
+    async fn manifest(&mut self) -> ImageResult<ImageManifest>;
 }
 
 /// A struct representing Image Manfest
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageManifest {
     pub manifest: Vec<u8>,
     pub mime_type: String,

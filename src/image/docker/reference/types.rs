@@ -2,6 +2,8 @@
 
 //! Types implementing Docker Reference
 
+use std::collections::HashMap;
+
 use crate::image::docker::{
     client::DockerClient, image::DockerImage, source::DockerSource, transport::DockerTransport,
 };
@@ -29,6 +31,19 @@ impl DockerReference {
     pub fn path(&self) -> &str {
         &self.repo.path
     }
+
+    pub(crate) fn get_string_within_transport(&self) -> String {
+        let mut s = format!("//{}/{}", self.repo.domain, self.repo.path);
+        if !self.tag.is_empty() {
+            s.push(':');
+            s.push_str(&self.tag);
+        }
+        if let Some(d) = &self.digest {
+            s.push('@');
+            s.push_str(&format!("{}", d));
+        }
+        s
+    }
 }
 
 impl ImageReference for DockerReference {
@@ -42,26 +57,18 @@ impl ImageReference for DockerReference {
     /// reference. However, a reference if obtained from this string, is equivalent to the
     /// reference that would be returned for the user supplied input.
     fn string_within_transport(&self) -> String {
-        let mut s = format!("//{}/{}", self.repo.domain, self.repo.path);
-        if !self.tag.is_empty() {
-            s.push(':');
-            s.push_str(&self.tag);
-        }
-        if let Some(d) = &self.digest {
-            s.push('@');
-            s.push_str(&format!("{}", d));
-        }
-        s
+        self.get_string_within_transport()
     }
 
     /// Returns an object implementing trait 'ImageSource' (in our case 'DockerSource').
-    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource>> {
+    fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource + Send + Sync>> {
         let domain = self.domain();
         let client = DockerClient::new(domain);
 
         Ok(Box::new(DockerSource {
             reference: self.clone(),
             client,
+            manifest_cache: HashMap::new(),
         }))
     }
 

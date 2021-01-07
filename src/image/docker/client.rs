@@ -135,9 +135,9 @@ impl DockerClient {
                 .to_str()
                 .unwrap()
                 .to_string();
-            let manifest = to_bytes(response).await?;
+            let manifest = to_bytes(response).await?.to_vec();
             Ok(ImageManifest {
-                manifest: serde_json::from_slice(&manifest)?,
+                manifest,
                 mime_type,
             })
         } else {
