@@ -19,37 +19,3 @@ lazy_static! {
         MEDIA_TYPE_IMAGE_MANIFEST,
     ];
 }
-
-/// A Generic Manifest Trait
-///
-/// Reference:: github.com/containers/image/image/manifest.go genericManifest interface
-pub(super) trait GenericManifest {
-    /// Serialize the Manifest to the Blob
-    fn serialize(&self) -> ImageResult<Vec<u8>>;
-
-    fn mime_type(&self) -> String;
-
-    fn config_info(&self) -> BlobInfo; // FIXME : Add this
-
-    fn config_blog(&self) -> ImageResult<Vec<u8>>;
-
-    fn oci_config(&self) -> ImageResult<OCISpecv1Image>;
-
-    fn layer_infos(&self) -> Vec<BlobInfo>;
-}
-
-pub(super) fn manifest_instance_from_blob(
-    src: &Box<dyn ImageSource>,
-    manifest: &ImageManifest,
-) -> ImageResult<Box<dyn GenericManifest>> {
-    Err(ImageError::new())
-}
-
-pub(crate) fn is_manifest_list_or_index(manifest: &ImageManifest) -> bool {
-    let mime_type = &manifest.mime_type;
-
-    match mime_type.as_str() {
-        MEDIA_TYPE_DOCKER_V2_LIST | MEDIA_TYPE_IMAGE_INDEX => true,
-        _ => false,
-    }
-}

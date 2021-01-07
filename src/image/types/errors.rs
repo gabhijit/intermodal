@@ -44,6 +44,12 @@ impl StdError for ImageError {
     }
 }
 
+impl From<serde_json::Error> for ImageError {
+    fn from(e: serde_json::Error) -> Self {
+        ImageError::new().with(e)
+    }
+}
+
 impl From<ImageError> for std::io::Error {
     fn from(e: ImageError) -> Self {
         std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{}", e))

@@ -41,9 +41,9 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
             "Valid Reference found! {}",
             image_ref.string_within_transport()
         );
-        let mut image_src = image_ref.new_image_source().unwrap();
+        let mut image = image_ref.new_image().unwrap();
         log::debug!("calling get_manifest");
-        let manifest = image_src.get_manifest(None).await?;
+        let manifest = image.manifest().await?;
         println!("{:?}", manifest);
 
         Ok(())

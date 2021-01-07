@@ -251,7 +251,7 @@ pub struct Schema2ManifestDescriptor {
 
     pub digest: Digest,
 
-    platform: Schema2PlatformSpec,
+    pub platform: Schema2PlatformSpec,
 }
 
 /// Schema2List Structure
