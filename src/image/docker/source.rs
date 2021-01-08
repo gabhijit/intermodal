@@ -65,4 +65,11 @@ impl ImageSource for DockerSource {
     async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest> {
         Ok(self.cached_or_fetch_manifest(digest).await?)
     }
+
+    async fn get_blob(&mut self, digest: &Digest) -> ImageResult<Vec<u8>> {
+        Ok(self
+            .client
+            .do_get_blob(self.reference.path(), digest)
+            .await?)
+    }
 }

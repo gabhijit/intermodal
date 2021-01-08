@@ -8,7 +8,7 @@ use crate::image::types::{
     errors::ImageError, Image, ImageManifest, ImageReference, ImageResult, ImageSource,
 };
 
-use super::manifest::schema2::Schema2List;
+use super::manifest::schema2::{Schema2, Schema2List};
 
 /// A `DockerImage` is a resolved Image which contains a source (`DockerSource`) and a 'blob' that
 /// can be deserialized to  a `Schema2` struct.
@@ -79,5 +79,11 @@ impl Image for DockerImage {
         let original = self.source.get_manifest(None).await?;
 
         Ok(self.resolve_manifest(&original).await?)
+    }
+
+    async fn config_blob(&mut self) -> ImageResult<Vec<u8>> {
+        let manifest = self.manifest().await?;
+        let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
+        Ok(self.source.get_blob(&schema.config.digest).await?)
     }
 }

@@ -16,6 +16,7 @@ use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
 use crate::image::manifest::DEFAULT_SUPPORTED_MANIFESTS;
 use crate::image::types::errors::ImageError;
 use crate::image::types::ImageManifest;
+use crate::oci::digest::Digest;
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 
@@ -142,6 +143,44 @@ impl DockerClient {
             })
         } else {
             let errstr = format!("Error in downloading Manifest: {}", status);
+            log::error!("{}", &errstr);
+            Err(ClientError(errstr))
+        }
+    }
+
+    pub(super) async fn do_get_blob(
+        &self,
+        path: &str,
+        digest: &Digest,
+    ) -> Result<Vec<u8>, ClientError> {
+        let blob_url_path = format!("{}v2/{}/blobs/{}", self.repo_url, path, digest);
+        log::debug!("Getting Blob: {}", blob_url_path);
+
+        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        let request = Request::builder()
+            .method("GET")
+            .uri(blob_url_path)
+            .header("Authorization", auth_header)
+            .body(Body::from(""))
+            .unwrap();
+
+        log::debug!("Sending Request: {:#?}", request);
+        let response = self.https_client.request(request).await?;
+        let status = response.status();
+
+        if status.is_success() {
+            log::info!("Blobs Downloaded Successfully!");
+            let mime_type = response
+                .headers()
+                .get("Content-Type")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            let blob = to_bytes(response).await?.to_vec();
+            Ok(blob)
+        } else {
+            let errstr = format!("Error in downloading Blob: {}", status);
             log::error!("{}", &errstr);
             Err(ClientError(errstr))
         }

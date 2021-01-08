@@ -87,6 +87,12 @@ pub trait ImageSource: std::fmt::Debug {
     /// type.
     async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest>;
 
+    /// Get a blob for the image
+    ///
+    /// It is up to the caller to decide whether the requested blob is a 'config' or a 'layer'
+    /// blob.
+    async fn get_blob(&mut self, digest: &Digest) -> ImageResult<Vec<u8>>; // FIXME: We need some kind of Stream interface here
+
     // FIXME: implement following functions
     //
     // Owner of this should call `close` to free resources associated
@@ -102,8 +108,11 @@ pub trait Image: std::fmt::Debug {
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
 
-    // Manifest of the image
+    /// Manifest of the image
     async fn manifest(&mut self) -> ImageResult<ImageManifest>;
+
+    /// Configuration for the Image
+    async fn config_blob(&mut self) -> ImageResult<Vec<u8>>;
 }
 
 /// A struct representing Image Manfest
