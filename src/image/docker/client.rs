@@ -4,7 +4,7 @@ use std::error::Error as StdError;
 use std::fmt;
 
 use chrono::{DateTime, Duration, Utc};
-use hyper::http::{HeaderValue, StatusCode};
+use hyper::http::{header::LOCATION, HeaderValue, StatusCode};
 use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
     Request, Uri,
@@ -170,15 +170,39 @@ impl DockerClient {
 
         if status.is_success() {
             log::info!("Blobs Downloaded Successfully!");
-            let mime_type = response
-                .headers()
-                .get("Content-Type")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
             let blob = to_bytes(response).await?.to_vec();
-            Ok(blob)
+            return Ok(blob);
+        } else if status.is_redirection() {
+            if !response.headers().contains_key(LOCATION) {
+                let errstr = format!("Redirect received but no {:?} Header.", LOCATION);
+                log::error!("{}", &errstr);
+                return Err(ClientError(errstr));
+            }
+
+            let redirect_location = response.headers().get(LOCATION).unwrap().to_str().unwrap();
+            log::trace!(
+                "Received Redirect to: {:?}. Trying to download.",
+                redirect_location
+            );
+
+            let request = Request::builder()
+                .method("GET")
+                .uri(redirect_location)
+                .body(Body::from(""))
+                .unwrap();
+
+            log::debug!("Sending Request: {:#?}", request);
+            let response = self.https_client.request(request).await?;
+            let status = response.status();
+            if status.is_success() {
+                log::debug!("Blobs Downloaded Successfully!");
+                let blob = to_bytes(response).await?.to_vec();
+                return Ok(blob);
+            } else {
+                let errstr = format!("Error in downloading Blob: {}", status);
+                log::error!("{}", &errstr);
+                Err(ClientError(errstr))
+            }
         } else {
             let errstr = format!("Error in downloading Blob: {}", status);
             log::error!("{}", &errstr);

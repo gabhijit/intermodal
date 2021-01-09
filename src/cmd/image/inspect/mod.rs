@@ -44,6 +44,8 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
         let mut image = image_ref.new_image().unwrap();
         log::debug!("calling get_manifest");
         let manifest = image.manifest().await?;
+        println!("{:?}", manifest);
+        log::debug!("Getting Config for the image.");
         let config_blob = image.config_blob().await?;
         println!("{:?}", config_blob);
 

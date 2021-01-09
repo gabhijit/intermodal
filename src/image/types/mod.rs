@@ -8,7 +8,6 @@
 //! achieve.
 
 use std::boxed::Box;
-use std::collections::HashMap;
 
 use async_trait::async_trait;
 
@@ -120,42 +119,6 @@ pub trait Image: std::fmt::Debug {
 pub struct ImageManifest {
     pub manifest: Vec<u8>,
     pub mime_type: String,
-}
-
-#[derive(Debug)]
-enum LayerCompression {
-    PreserveOriginal,
-
-    Compress,
-
-    Decompress,
-}
-
-#[derive(Debug)]
-enum LayerCrypto {
-    PreserveOriginalCrypto,
-
-    Encrypt,
-
-    Decrypt,
-}
-
-#[derive(Debug)]
-pub struct BlobInfo {
-    pub digest: Digest,
-
-    pub size: i64,
-
-    urls: Vec<String>,
-
-    annotations: HashMap<String, String>,
-
-    media_type: String,
-
-    // FIXME: Omitted Compression Algorithm.
-    compression_op: LayerCompression,
-
-    encryption_op: LayerCrypto,
 }
 
 pub mod errors;
