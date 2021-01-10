@@ -79,10 +79,7 @@ impl ImageReference for DockerReference {
         // FIXME: Get a proper manifest.
         let manifest: Vec<u8> = vec![];
 
-        Ok(Box::new(DockerImage {
-            source: source,
-            manifest,
-        }))
+        Ok(Box::new(DockerImage { source, manifest }))
     }
 }
 

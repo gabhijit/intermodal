@@ -1,13 +1,17 @@
 //! Docker client for Image registry
 
+use core::convert::{Into, TryFrom};
 use std::error::Error as StdError;
 use std::fmt;
 
 use chrono::{DateTime, Duration, Utc};
-use hyper::http::{header::LOCATION, HeaderValue, StatusCode};
+use hyper::http::{
+    header::{ACCEPT, AUTHORIZATION, LOCATION},
+    Error as HttpError, HeaderMap, HeaderValue, Method as HttpMethod, StatusCode,
+};
 use hyper::{
     body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
-    Request, Uri,
+    Request, Response, Uri,
 };
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
@@ -90,12 +94,90 @@ impl DockerClient {
         }
     }
 
+    // FIXME: Handle taking 'body' as input
+    /// Returns `Response` if it's a valid response or `ClientError`
+    async fn perform_http_request<M, U>(
+        &self,
+        url: U,
+        method: M,
+        headers: Option<&HeaderMap>,
+        handle_redirects: bool,
+    ) -> Result<Response<Body>, ClientError>
+    where
+        HttpMethod: TryFrom<M>,
+        <HttpMethod as TryFrom<M>>::Error: Into<HttpError>,
+        Uri: TryFrom<U>,
+        <Uri as TryFrom<U>>::Error: Into<HttpError>,
+        M: Copy,
+    {
+        let mut request = Request::builder()
+            .method(method)
+            .uri(url)
+            .body(Body::from("")) // FIXME: Body
+            .unwrap();
+
+        if headers.is_some() {
+            let headers = headers.unwrap();
+            let req_headers = request.headers_mut();
+            for (key, value) in headers {
+                req_headers.insert(key, value.clone());
+            }
+        }
+
+        log::trace!("Sending Request: {:#?}", request);
+        let response = self.https_client.request(request).await?;
+        let status = response.status();
+
+        if status.is_success() {
+            log::trace!("Downloaded Successfully!");
+            Ok(response)
+        } else {
+            if !handle_redirects {
+                let errstr = format!("Error in downloading Blob: {}", status);
+                log::error!("{}", &errstr);
+                return Err(ClientError(errstr));
+            }
+            if status.is_redirection() {
+                if !response.headers().contains_key(LOCATION) {
+                    let loc = LOCATION;
+                    let errstr = format!("Redirect received but no {:?} Header.", loc);
+                    log::error!("{}", &errstr);
+                    return Err(ClientError(errstr));
+                }
+                let redirect_url = response.headers().get(LOCATION).unwrap().to_str().unwrap();
+                log::trace!(
+                    "Received Redirect to: {:?}. Trying to download.",
+                    redirect_url
+                );
+
+                let request = Request::builder()
+                    .method(method)
+                    .uri::<&str>(redirect_url)
+                    .body(Body::from("")) // FIXME: Body
+                    .unwrap();
+
+                log::trace!("Sending Request: {:#?}", request);
+                let response = self.https_client.request(request).await?;
+                let status = response.status();
+                if status.is_success() {
+                    return Ok(response);
+                }
+            }
+
+            let errstr = format!("Error in downloading : {}", status);
+            log::error!("{}", &errstr);
+            Err(ClientError(errstr))
+        }
+    }
+
     /// Actually Get the manifest using the current client
     pub(super) async fn do_get_manifest(
         &mut self,
         path: &str,
         digest_or_tag: &str,
     ) -> Result<ImageManifest, ClientError> {
+        // FIXME: There will be repos that don't 'need' a bearer token and will still allow to
+        // download the Images. (eg. repo.fedoraproject.org)
         if self.bearer_token.is_none() {
             log::trace!("Bearer token is None, acquiring.");
             self.get_bearer_token_for_path_scope(path, None).await?
@@ -110,42 +192,31 @@ impl DockerClient {
             return Err(ClientError(errstr));
         }
 
-        let manifest_url_path = format!("{}v2/{}/manifests/{}", self.repo_url, path, digest_or_tag);
-        log::debug!("Getting Manifest: {}", manifest_url_path);
-
+        let manifest_url = format!("{}v2/{}/manifests/{}", self.repo_url, path, digest_or_tag);
         let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
         let accept_header = DEFAULT_SUPPORTED_MANIFESTS.join(", ");
-        let request = Request::builder()
-            .method("GET")
-            .uri(manifest_url_path)
-            .header("Authorization", auth_header)
-            .header("Accept", accept_header)
-            .body(Body::from(""))
-            .unwrap();
 
-        log::debug!("Sending Request: {:#?}", request);
-        let response = self.https_client.request(request).await?;
-        let status = response.status();
+        log::debug!("Getting Manifest: {}", manifest_url);
 
-        if status.is_success() {
-            log::info!("Manifest Downloaded Successfully!");
-            let mime_type = response
-                .headers()
-                .get("Content-Type")
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-            let manifest = to_bytes(response).await?.to_vec();
-            Ok(ImageManifest {
-                manifest,
-                mime_type,
-            })
-        } else {
-            let errstr = format!("Error in downloading Manifest: {}", status);
-            log::error!("{}", &errstr);
-            Err(ClientError(errstr))
-        }
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        headers.insert(ACCEPT, accept_header.parse().unwrap());
+
+        let response = self
+            .perform_http_request(manifest_url, "GET", Some(&headers), true)
+            .await?;
+        let mime_type = response
+            .headers()
+            .get("Content-Type")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        Ok(ImageManifest {
+            manifest: to_bytes(response).await?.to_vec(),
+            mime_type,
+        })
     }
 
     pub(super) async fn do_get_blob(
@@ -157,57 +228,14 @@ impl DockerClient {
         log::debug!("Getting Blob: {}", blob_url_path);
 
         let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
-        let request = Request::builder()
-            .method("GET")
-            .uri(blob_url_path)
-            .header("Authorization", auth_header)
-            .body(Body::from(""))
-            .unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
 
-        log::debug!("Sending Request: {:#?}", request);
-        let response = self.https_client.request(request).await?;
-        let status = response.status();
+        let response = self
+            .perform_http_request(blob_url_path, "GET", Some(&headers), true)
+            .await?;
 
-        if status.is_success() {
-            log::info!("Blobs Downloaded Successfully!");
-            let blob = to_bytes(response).await?.to_vec();
-            return Ok(blob);
-        } else if status.is_redirection() {
-            if !response.headers().contains_key(LOCATION) {
-                let errstr = format!("Redirect received but no {:?} Header.", LOCATION);
-                log::error!("{}", &errstr);
-                return Err(ClientError(errstr));
-            }
-
-            let redirect_location = response.headers().get(LOCATION).unwrap().to_str().unwrap();
-            log::trace!(
-                "Received Redirect to: {:?}. Trying to download.",
-                redirect_location
-            );
-
-            let request = Request::builder()
-                .method("GET")
-                .uri(redirect_location)
-                .body(Body::from(""))
-                .unwrap();
-
-            log::debug!("Sending Request: {:#?}", request);
-            let response = self.https_client.request(request).await?;
-            let status = response.status();
-            if status.is_success() {
-                log::debug!("Blobs Downloaded Successfully!");
-                let blob = to_bytes(response).await?.to_vec();
-                return Ok(blob);
-            } else {
-                let errstr = format!("Error in downloading Blob: {}", status);
-                log::error!("{}", &errstr);
-                Err(ClientError(errstr))
-            }
-        } else {
-            let errstr = format!("Error in downloading Blob: {}", status);
-            log::error!("{}", &errstr);
-            Err(ClientError(errstr))
-        }
+        Ok(to_bytes(response).await?.to_vec())
     }
 
     #[doc(hidden)]
@@ -266,7 +294,7 @@ impl DockerClient {
                     bearer_token.issued_at,
                     bearer_token.expires_in
                 );
-                let _ = self.bearer_token; // Get into a variable to drop it
+                let _ = self.bearer_token.take(); // Get into a variable to drop it
                 self.bearer_token = Some(bearer_token);
                 log::debug!("Bearer Token for Client Saved!");
                 return Ok(());
