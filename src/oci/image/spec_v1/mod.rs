@@ -114,7 +114,7 @@ pub struct ImageConfig {
     pub exposed_ports: Option<HashMap<String, String>>, // FIXME: Use correct type
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Env")]
-    pub env: Option<String>,
+    pub env: Option<Vec<String>>,
 
     #[serde(
         default,
@@ -124,7 +124,7 @@ pub struct ImageConfig {
     pub entry_point: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Cmd")]
-    pub cmd: Option<String>,
+    pub cmd: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Volumes")]
     pub volumes: Option<HashMap<String, String>>, // FIXME: Use correct type
@@ -189,5 +189,5 @@ pub struct Image {
 
     pub rootfs: RootFS,
 
-    pub history: Option<History>,
+    pub history: Option<Vec<History>>,
 }
