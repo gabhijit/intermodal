@@ -12,6 +12,7 @@ use std::boxed::Box;
 use async_trait::async_trait;
 
 use crate::oci::digest::Digest;
+use crate::oci::image::spec_v1::Image as OCIv1Image;
 
 /// A Result of operations related to handling Images
 pub type ImageResult<T> = Result<T, errors::ImageError>;
@@ -112,6 +113,9 @@ pub trait Image: std::fmt::Debug {
 
     /// Configuration for the Image
     async fn config_blob(&mut self) -> ImageResult<Vec<u8>>;
+
+    /// Returns the OCI Image
+    async fn oci_config(&mut self) -> ImageResult<OCIv1Image>;
 }
 
 /// A struct representing Image Manfest

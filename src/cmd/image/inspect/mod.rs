@@ -1,6 +1,7 @@
 //! Handling of 'inspect' subcommand of 'image' command
 
 use std::io;
+use std::string::String;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
@@ -34,6 +35,9 @@ pub fn add_subcmd_inspect() -> App<'static, 'static> {
 pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
     let image_name = cmd.value_of("name").unwrap();
 
+    let config = cmd.is_present("config");
+    let raw = cmd.is_present("raw");
+
     log::debug!("Image Name: {}", image_name);
 
     if let Ok(image_ref) = transports::parse_image_name(image_name) {
@@ -44,10 +48,27 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
         let mut image = image_ref.new_image().unwrap();
         log::debug!("calling get_manifest");
         let manifest = image.manifest().await?;
-        println!("{:?}", manifest);
-        log::debug!("Getting Config for the image.");
-        let config_blob = image.config_blob().await?;
-        println!("{:?}", config_blob);
+
+        if raw {
+            println!(
+                "Manifest for {}: {}",
+                image_name,
+                String::from_utf8(manifest.manifest).unwrap()
+            );
+        }
+
+        if config {
+            log::debug!("Getting Config for the image.");
+            if raw {
+                println!(
+                    "Config Blob for Image '{}' : {}",
+                    image_name,
+                    String::from_utf8(image.config_blob().await?).unwrap()
+                );
+            } else {
+                println!("{:#?}", image.oci_config().await?);
+            }
+        }
 
         Ok(())
     } else {

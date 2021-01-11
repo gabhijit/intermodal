@@ -7,6 +7,7 @@ use crate::image::platform::get_os_platform;
 use crate::image::types::{
     errors::ImageError, Image, ImageManifest, ImageReference, ImageResult, ImageSource,
 };
+use crate::oci::image::spec_v1::Image as OCIv1Image;
 
 use super::manifest::schema2::{Schema2, Schema2List};
 
@@ -85,5 +86,9 @@ impl Image for DockerImage {
         let manifest = self.manifest().await?;
         let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
         Ok(self.source.get_blob(&schema.config.digest).await?)
+    }
+
+    async fn oci_config(&mut self) -> ImageResult<OCIv1Image> {
+        Ok(serde_json::from_slice(&self.config_blob().await?)?)
     }
 }
