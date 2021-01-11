@@ -96,7 +96,7 @@ pub struct Schema2Config {
     pub env: Vec<String>,
 
     #[serde(rename = "Cmd")]
-    pub cmd: String,
+    pub cmd: Vec<String>,
 
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
     pub health_check: Option<Schema2HealthConfig>,
@@ -107,14 +107,14 @@ pub struct Schema2Config {
     #[serde(rename = "Image")]
     pub image: String,
 
-    #[serde(rename = "Volumes")]
-    pub volumes: Vec<String>,
+    #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
+    pub volumes: Option<Vec<String>>,
 
     #[serde(rename = "WorkingDir")]
     pub working_dir: String,
 
-    #[serde(rename = "EntryPoint")]
-    pub entry_point: String,
+    #[serde(rename = "EntryPoint", skip_serializing_if = "Option::is_none")]
+    pub entry_point: Option<String>,
 
     #[serde(rename = "NetworkDisabled", skip_serializing_if = "Option::is_none")]
     pub network_disabled: Option<bool>,
@@ -122,8 +122,8 @@ pub struct Schema2Config {
     #[serde(rename = "MacAddress", skip_serializing_if = "Option::is_none")]
     pub mac_address: Option<String>,
 
-    #[serde(rename = "OnBuild")]
-    pub on_build: Vec<String>,
+    #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
+    pub on_build: Option<Vec<String>>,
 
     #[serde(rename = "Labels")]
     pub labels: HashMap<String, String>,
@@ -184,7 +184,7 @@ pub struct Schema2Image {
     rootfs: Option<Schema2RootFS>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    history: Option<Schema2History>,
+    history: Option<Vec<Schema2History>>,
 
     #[serde(rename = "os.version", skip_serializing_if = "Option::is_none")]
     pub os_version: Option<String>,

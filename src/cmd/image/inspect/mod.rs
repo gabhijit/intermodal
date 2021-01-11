@@ -4,8 +4,48 @@ use std::io;
 use std::string::String;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use serde::Serialize;
 
 use crate::image::transports;
+
+// We use references because, this will be generated from underlying 'image.inspect' struct.
+// which contains 'owned' values, For our case, the underlying struct will 'outlive' this.
+// We try to match the output as closely as 'skopeo inspect'
+#[derive(Serialize)]
+struct InspectOutput<'a> {
+    #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
+    name: Option<&'a str>,
+
+    #[serde(rename = "Tag", skip_serializing_if = "Option::is_none")]
+    tag: Option<&'a str>,
+
+    #[serde(rename = "Digest")]
+    digest: &'a str,
+
+    #[serde(rename = "RepoTags")]
+    repo_tags: Vec<&'a str>,
+
+    #[serde(rename = "Created")]
+    created: &'a str,
+
+    #[serde(rename = "DockerVersion")]
+    docker_version: &'a str,
+
+    #[serde(rename = "Labels")]
+    labels: &'a str,
+
+    #[serde(rename = "Architecture")]
+    architecture: &'a str,
+
+    #[serde(rename = "Os")]
+    os: &'a str,
+
+    #[serde(rename = "Layers")]
+    layers: Vec<&'a str>,
+
+    #[serde(rename = "Env")]
+    env: Vec<&'a str>,
+}
 
 /// API function to subscribe handling of 'inspect' subcommands
 pub fn add_subcmd_inspect() -> App<'static, 'static> {
@@ -66,7 +106,7 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                     String::from_utf8(image.config_blob().await?).unwrap()
                 );
             } else {
-                println!("{:#?}", image.oci_config().await?);
+                println!("{}", serde_json::to_string_pretty(&image.inspect().await?)?);
             }
         }
 

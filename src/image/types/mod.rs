@@ -8,8 +8,10 @@
 //! achieve.
 
 use std::boxed::Box;
+use std::collections::HashMap;
 
 use async_trait::async_trait;
+use serde::Serialize;
 
 use crate::oci::digest::Digest;
 use crate::oci::image::spec_v1::Image as OCIv1Image;
@@ -108,14 +110,20 @@ pub trait Image: std::fmt::Debug {
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
 
-    /// Manifest of the image
+    /// Returns the manifest for the image.
+    ///
+    /// This manifest is always a 'resolved' manifest, that is manifest corresponding to the OS /
+    /// Architecture where the caller is running.
     async fn manifest(&mut self) -> ImageResult<ImageManifest>;
 
-    /// Configuration for the Image
+    /// Returns the raw config blob for the Image
     async fn config_blob(&mut self) -> ImageResult<Vec<u8>>;
 
-    /// Returns the OCI Image
+    /// Returns the Image in OCI Format.
     async fn oci_config(&mut self) -> ImageResult<OCIv1Image>;
+
+    /// Returns inspect output friendly structure.
+    async fn inspect(&mut self) -> ImageResult<ImageInspect>;
 }
 
 /// A struct representing Image Manfest
@@ -123,6 +131,31 @@ pub trait Image: std::fmt::Debug {
 pub struct ImageManifest {
     pub manifest: Vec<u8>,
     pub mime_type: String,
+}
+
+/// A struct representing Inspect output (Something like 'docker inspect', 'skopeo inspect')
+#[derive(Debug, Serialize)]
+pub struct ImageInspect {
+    #[serde(rename = "Created")]
+    pub created: String,
+
+    #[serde(rename = "DockerVersion")]
+    pub docker_version: String,
+
+    #[serde(rename = "Labels")]
+    pub labels: HashMap<String, String>,
+
+    #[serde(rename = "Architecture")]
+    pub architecture: String,
+
+    #[serde(rename = "Os")]
+    pub os: String,
+
+    #[serde(rename = "Layers")]
+    pub layers: Vec<String>,
+
+    #[serde(rename = "Env")]
+    pub env: Vec<String>,
 }
 
 pub mod errors;

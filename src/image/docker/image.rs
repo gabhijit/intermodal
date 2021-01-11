@@ -1,15 +1,17 @@
 //! Implementation of a 'trait Image' for Docker
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 
 use crate::image::docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST};
 use crate::image::platform::get_os_platform;
 use crate::image::types::{
-    errors::ImageError, Image, ImageManifest, ImageReference, ImageResult, ImageSource,
+    errors::{ImageError, ImageResult},
+    Image, ImageInspect, ImageManifest, ImageReference, ImageSource,
 };
 use crate::oci::image::spec_v1::Image as OCIv1Image;
 
-use super::manifest::schema2::{Schema2, Schema2List};
+use super::manifest::schema2::{Schema2, Schema2Image, Schema2List};
 
 /// A `DockerImage` is a resolved Image which contains a source (`DockerSource`) and a 'blob' that
 /// can be deserialized to  a `Schema2` struct.
@@ -22,6 +24,7 @@ use super::manifest::schema2::{Schema2, Schema2List};
 pub struct DockerImage {
     pub source: Box<dyn ImageSource + Send + Sync>,
     pub manifest: Vec<u8>,
+    pub cfgblob: Option<Vec<u8>>,
 }
 
 impl DockerImage {
@@ -83,12 +86,66 @@ impl Image for DockerImage {
     }
 
     async fn config_blob(&mut self) -> ImageResult<Vec<u8>> {
-        let manifest = self.manifest().await?;
-        let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
-        Ok(self.source.get_blob(&schema.config.digest).await?)
+        if self.cfgblob.is_none() {
+            log::debug!("Config blob is not cached. Downloading Config blob.");
+            let manifest = self.manifest().await?;
+            let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
+            self.cfgblob = Some(self.source.get_blob(&schema.config.digest).await?);
+        }
+        Ok(self.cfgblob.as_ref().unwrap().clone())
     }
 
     async fn oci_config(&mut self) -> ImageResult<OCIv1Image> {
         Ok(serde_json::from_slice(&self.config_blob().await?)?)
+    }
+
+    async fn inspect(&mut self) -> ImageResult<ImageInspect> {
+        let manifest: Schema2 = serde_json::from_slice(&self.manifest().await?.manifest)?;
+        let layers: Vec<String> = manifest
+            .layers
+            .iter()
+            .map(|l| l.digest.to_string())
+            .collect();
+
+        log::debug!("{}", String::from_utf8(self.config_blob().await?).unwrap());
+
+        let docker_image: Schema2Image = serde_json::from_slice(&self.config_blob().await?)?;
+        let docker_config = docker_image.config.as_ref();
+
+        Ok(ImageInspect {
+            created: docker_image.created.to_string(),
+
+            architecture: if docker_image.architecture.is_some() {
+                docker_image.architecture.unwrap().clone()
+            } else {
+                "".to_string()
+            },
+
+            docker_version: if docker_image.docker_version.is_some() {
+                docker_image.docker_version.unwrap().clone()
+            } else {
+                "".to_string()
+            },
+
+            os: if docker_image.os.is_some() {
+                docker_image.os.unwrap().clone()
+            } else {
+                "".to_string()
+            },
+
+            layers,
+
+            labels: if docker_config.is_some() {
+                docker_config.unwrap().labels.clone()
+            } else {
+                HashMap::new()
+            },
+
+            env: if docker_config.is_some() {
+                docker_config.unwrap().env.clone()
+            } else {
+                vec![]
+            },
+        })
     }
 }
