@@ -15,7 +15,7 @@ use crate::image::transports;
 #[derive(Serialize)]
 struct InspectOutput<'a> {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
-    name: Option<&'a str>,
+    name: Option<String>,
 
     #[serde(rename = "Tag", skip_serializing_if = "Option::is_none")]
     tag: Option<&'a str>,
@@ -113,9 +113,14 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                 let tags = image.source_ref().get_repo_tags().await?;
                 log::debug!("Tags: {:#?}", tags);
 
+                let reference_name = match image_ref.docker_reference() {
+                    Some(r) => Some(r.name()),
+                    None => None,
+                };
+
                 let output = InspectOutput {
-                    name: None, // FIXME: Get from Docker Reference Name
-                    tag: None,  // FIXME: Get from Docker Reference Tag
+                    name: reference_name,
+                    tag: None, // FIXME: Get from Docker Reference Tag
                     digest: "",
                     repo_tags: &tags,
                     created: &inspect_data.created,

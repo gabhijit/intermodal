@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde::Serialize;
 
+use crate::image::docker::reference::types::DockerImageReference;
 use crate::oci::digest::Digest;
 use crate::oci::image::spec_v1::Image as OCIv1Image;
 
@@ -61,7 +62,9 @@ pub trait ImageReference: std::fmt::Debug {
     /// Returns the Image
     fn new_image(&self) -> ImageResult<Box<dyn Image>>;
 
-    // fn docker_reference(&self) -> Option<DockerReference>;
+    fn docker_reference(&self) -> Option<Box<dyn DockerImageReference>> {
+        None
+    }
 
     // FIXME: implement following methods
     // fn policy_configuration_identity(&self) -> String;

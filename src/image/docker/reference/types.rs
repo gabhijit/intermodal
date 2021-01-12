@@ -12,6 +12,15 @@ use crate::oci::digest::Digest;
 
 use super::errors::ReferenceError;
 
+/// Functions exposed by the 'DockerReference' structure for client.
+pub trait DockerImageReference {
+    fn name(&self) -> String;
+
+    fn tag(&self) -> String;
+
+    fn digest(&self) -> Option<Digest>;
+}
+
 pub(crate) type DockerReferenceResult = Result<DockerReference, ReferenceError>;
 
 /// A structure implementing Docker Reference.
@@ -84,6 +93,24 @@ impl ImageReference for DockerReference {
             manifest,
             cfgblob: None,
         }))
+    }
+
+    fn docker_reference(&self) -> Option<Box<dyn DockerImageReference>> {
+        Some(Box::new(self.clone()))
+    }
+}
+
+impl DockerImageReference for DockerReference {
+    fn name(&self) -> String {
+        format!("{}/{}", self.domain(), self.path())
+    }
+
+    fn tag(&self) -> String {
+        self.tag.clone()
+    }
+
+    fn digest(&self) -> Option<Digest> {
+        self.digest.clone()
     }
 }
 
