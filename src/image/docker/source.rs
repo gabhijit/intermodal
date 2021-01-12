@@ -72,4 +72,9 @@ impl ImageSource for DockerSource {
             .do_get_blob(self.reference.path(), digest)
             .await?)
     }
+
+    async fn get_repo_tags(&self) -> ImageResult<Vec<String>> {
+        log::debug!("ImageSource.get_repo_tags");
+        Ok(self.client.do_get_repo_tags(self.reference.path()).await?)
+    }
 }

@@ -79,6 +79,10 @@ impl Image for DockerImage {
         self.source.reference()
     }
 
+    fn source_ref(&self) -> &dyn ImageSource {
+        self.source.as_ref()
+    }
+
     async fn manifest(&mut self) -> ImageResult<ImageManifest> {
         let original = self.source.get_manifest(None).await?;
 

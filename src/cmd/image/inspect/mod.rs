@@ -1,5 +1,6 @@
 //! Handling of 'inspect' subcommand of 'image' command
 
+use std::collections::HashMap;
 use std::io;
 use std::string::String;
 
@@ -23,7 +24,7 @@ struct InspectOutput<'a> {
     digest: &'a str,
 
     #[serde(rename = "RepoTags")]
-    repo_tags: Vec<&'a str>,
+    repo_tags: &'a Vec<String>,
 
     #[serde(rename = "Created")]
     created: &'a str,
@@ -32,7 +33,7 @@ struct InspectOutput<'a> {
     docker_version: &'a str,
 
     #[serde(rename = "Labels")]
-    labels: &'a str,
+    labels: &'a HashMap<String, String>,
 
     #[serde(rename = "Architecture")]
     architecture: &'a str,
@@ -41,10 +42,10 @@ struct InspectOutput<'a> {
     os: &'a str,
 
     #[serde(rename = "Layers")]
-    layers: Vec<&'a str>,
+    layers: &'a Vec<String>,
 
     #[serde(rename = "Env")]
-    env: Vec<&'a str>,
+    env: &'a Vec<String>,
 }
 
 /// API function to subscribe handling of 'inspect' subcommands
@@ -85,7 +86,9 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
             "Valid Reference found! {}",
             image_ref.string_within_transport()
         );
-        let mut image = image_ref.new_image().unwrap();
+
+        let mut image = image_ref.new_image()?;
+
         log::debug!("calling get_manifest");
         let manifest = image.manifest().await?;
 
@@ -106,7 +109,24 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                     String::from_utf8(image.config_blob().await?).unwrap()
                 );
             } else {
-                println!("{}", serde_json::to_string_pretty(&image.inspect().await?)?);
+                let inspect_data = image.inspect().await?;
+                let tags = image.source_ref().get_repo_tags().await?;
+                log::debug!("Tags: {:#?}", tags);
+
+                let output = InspectOutput {
+                    name: None, // FIXME: Get from Docker Reference Name
+                    tag: None,  // FIXME: Get from Docker Reference Tag
+                    digest: "",
+                    repo_tags: &tags,
+                    created: &inspect_data.created,
+                    docker_version: &inspect_data.docker_version,
+                    labels: &inspect_data.labels,
+                    architecture: &inspect_data.architecture,
+                    os: &inspect_data.os,
+                    layers: &inspect_data.layers,
+                    env: &inspect_data.env,
+                };
+                println!("{}", serde_json::to_string_pretty(&output).unwrap());
             }
         }
 

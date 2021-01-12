@@ -30,11 +30,10 @@ pub trait ImageTransport: std::fmt::Debug {
     #[doc(hidden)]
     // We need to implement this for Transports because we are keeping a set of Transports in a
     // Hashmap, and then we'll have to return clone of the value in the HashMap. The additional
-    // `Sync` and `Senc` requirements are because the HashMap is protected by a Mutex (being a
+    // `Sync` and `Send` requirements are because the HashMap is protected by a Mutex (being a
     // global variable).
 
     fn cloned(&self) -> Box<dyn ImageTransport + Send + Sync>;
-    // fn validay_policy_config_scope<'a>(&self, scope: &'a str) -> ImageResult<()>;
 }
 
 // Required for handling the Boxed Trait Objects of ImageTransport type
@@ -61,9 +60,10 @@ pub trait ImageReference: std::fmt::Debug {
 
     /// Returns the Image
     fn new_image(&self) -> ImageResult<Box<dyn Image>>;
-    // FIXME: implement following methods
-    // fn docker_reference(&self) -> Box<dyn NamedRef>;
 
+    // fn docker_reference(&self) -> Option<DockerReference>;
+
+    // FIXME: implement following methods
     // fn policy_configuration_identity(&self) -> String;
 
     // fn policy_configuration_namespaces(&self) -> Vec<String>;
@@ -86,7 +86,7 @@ pub trait ImageSource: std::fmt::Debug {
     /// reference or the 'tag' (default if not present) for the reference. When we explicitly pass
     /// the Digest, we are interested in manifest corresponding to this specific digest (Which
     /// usually is the manifest for the 'Image' if the previous manifest was a 'list' or 'index'
-    /// type.
+    /// type.)
     async fn get_manifest(&mut self, digest: Option<&Digest>) -> ImageResult<ImageManifest>;
 
     /// Get a blob for the image
@@ -95,10 +95,11 @@ pub trait ImageSource: std::fmt::Debug {
     /// blob.
     async fn get_blob(&mut self, digest: &Digest) -> ImageResult<Vec<u8>>; // FIXME: We need some kind of Stream interface here
 
-    // FIXME: implement following functions
-    //
-    // Owner of this should call `close` to free resources associated
-    //fn close(&self) -> ImageResult<()>;
+    /// Get all tags for this Image source
+    ///
+    /// Get's all tags corresponding to this Image Source. Note: Right now this makes sense only
+    /// for the 'docker' Image sources, for other image sources, simply return an Empty List.
+    async fn get_repo_tags(&self) -> ImageResult<Vec<String>>;
 }
 
 /// A trait that should be implemented by all Images.
@@ -107,6 +108,9 @@ pub trait ImageSource: std::fmt::Debug {
 /// and instance Digest. This can be a manifest list or a single instance.
 #[async_trait]
 pub trait Image: std::fmt::Debug {
+    /// Underlying 'image source'
+    fn source_ref(&self) -> &dyn ImageSource;
+
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
 

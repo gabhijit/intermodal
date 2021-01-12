@@ -33,6 +33,13 @@ impl fmt::Display for ClientError {
     }
 }
 
+// Required to get tags list.
+#[derive(Debug, Deserialize)]
+struct TagInfo {
+    name: String,
+    tags: Vec<String>,
+}
+
 impl StdError for ClientError {}
 
 impl From<HyperError> for ClientError {
@@ -236,6 +243,25 @@ impl DockerClient {
             .await?;
 
         Ok(to_bytes(response).await?.to_vec())
+    }
+
+    // FIXME: This should take a mut self so that we can update Bearer Token if required.
+    pub(super) async fn do_get_repo_tags(&self, path: &str) -> Result<Vec<String>, ClientError> {
+        log::debug!("Getting Tags for the Repository: {}", path);
+        let all_tags_url = format!("{}v2/{}/tags/list", self.repo_url, path);
+
+        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        let mut headers = HeaderMap::new();
+        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+
+        let response = self
+            .perform_http_request(all_tags_url, "GET", Some(&headers), true)
+            .await?;
+
+        let taginfo: TagInfo = serde_json::from_slice(&to_bytes(response).await?.to_vec())?;
+        log::trace!("Received Tags: {:?}", taginfo);
+
+        Ok(taginfo.tags.clone())
     }
 
     #[doc(hidden)]
