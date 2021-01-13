@@ -92,11 +92,11 @@ pub struct Schema2Config {
     #[serde(rename = "StdinOnce")]
     pub stdin_once: bool,
 
-    #[serde(rename = "Env")]
-    pub env: Vec<String>,
+    #[serde(default, rename = "Env")]
+    pub env: Option<Vec<String>>,
 
-    #[serde(rename = "Cmd")]
-    pub cmd: Vec<String>,
+    #[serde(default, rename = "Cmd")]
+    pub cmd: Option<Vec<String>>,
 
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
     pub health_check: Option<Schema2HealthConfig>,
@@ -126,7 +126,7 @@ pub struct Schema2Config {
     pub on_build: Option<Vec<String>>,
 
     #[serde(rename = "Labels")]
-    pub labels: HashMap<String, String>,
+    pub labels: Option<HashMap<String, String>>,
 
     #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     pub stop_signal: Option<String>,

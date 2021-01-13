@@ -67,6 +67,7 @@ pub(super) struct DockerClient {
     repo_url: Uri,
     // FIXME: This should be a Map of <scope, BearerToken>
     bearer_token: Option<BearerToken>,
+    auth_required: bool,
 }
 
 impl DockerClient {
@@ -74,11 +75,20 @@ impl DockerClient {
     pub(super) fn new(repository: &str) -> Self {
         // We let panic if the Repo URL is not parseable
 
-        let repo_url: Uri;
+        let mut repo_url: Uri;
         if repository == DEFAULT_DOCKER_DOMAIN {
             repo_url = DOCKER_REGISTRY_V2_HTTPS_URL.parse::<Uri>().unwrap();
         } else {
             repo_url = repository.parse::<Uri>().unwrap();
+
+            if repo_url.scheme().is_none() {
+                repo_url = Uri::builder()
+                    .scheme("https")
+                    .authority(repository)
+                    .path_and_query("/")
+                    .build()
+                    .unwrap();
+            }
         }
 
         log::debug!("Getting DockerClient for '{}'.", repo_url);
@@ -98,6 +108,7 @@ impl DockerClient {
             https_client,
             repo_url,
             bearer_token: None,
+            auth_required: true,
         }
     }
 
@@ -183,31 +194,22 @@ impl DockerClient {
         path: &str,
         digest_or_tag: &str,
     ) -> Result<ImageManifest, ClientError> {
-        // FIXME: There will be repos that don't 'need' a bearer token and will still allow to
-        // download the Images. (eg. repo.fedoraproject.org)
-        if self.bearer_token.is_none() {
-            log::trace!("Bearer token is None, acquiring.");
-            self.get_bearer_token_for_path_scope(path, None).await?
-        } else if !self.bearer_token.as_ref().unwrap().is_still_valid() {
-            log::trace!("Bearer token expired, renewing.");
-            self.get_bearer_token_for_path_scope(path, None).await?;
-        }
-
-        if self.bearer_token.is_none() || !self.bearer_token.as_ref().unwrap().is_still_valid() {
-            let errstr = "Invalid Bearer Token Still! Bailing out!".to_string();
-            log::error!("{}", &errstr);
-            return Err(ClientError(errstr));
-        }
-
         let manifest_url = format!("{}v2/{}/manifests/{}", self.repo_url, path, digest_or_tag);
-        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
-        let accept_header = DEFAULT_SUPPORTED_MANIFESTS.join(", ");
-
         log::debug!("Getting Manifest: {}", manifest_url);
 
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+
+        let accept_header = DEFAULT_SUPPORTED_MANIFESTS.join(", ");
         headers.insert(ACCEPT, accept_header.parse().unwrap());
+
+        // This will get the bearer token and store it.
+        self.get_bearer_token_for_path_scope(path, Some("pull"))
+            .await?;
+
+        if self.auth_required {
+            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+            headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        }
 
         let response = self
             .perform_http_request(manifest_url, "GET", Some(&headers), true)
@@ -227,16 +229,22 @@ impl DockerClient {
     }
 
     pub(super) async fn do_get_blob(
-        &self,
+        &mut self,
         path: &str,
         digest: &Digest,
     ) -> Result<Vec<u8>, ClientError> {
         let blob_url_path = format!("{}v2/{}/blobs/{}", self.repo_url, path, digest);
         log::debug!("Getting Blob: {}", blob_url_path);
 
-        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        // This will get the bearer token and store it if required.
+        self.get_bearer_token_for_path_scope(path, Some("pull"))
+            .await?;
+
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        if self.auth_required {
+            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+            headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        }
 
         let response = self
             .perform_http_request(blob_url_path, "GET", Some(&headers), true)
@@ -250,9 +258,11 @@ impl DockerClient {
         log::debug!("Getting Tags for the Repository: {}", path);
         let all_tags_url = format!("{}v2/{}/tags/list", self.repo_url, path);
 
-        let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
         let mut headers = HeaderMap::new();
-        headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        if self.auth_required {
+            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+            headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
+        }
 
         let response = self
             .perform_http_request(all_tags_url, "GET", Some(&headers), true)
@@ -283,12 +293,24 @@ impl DockerClient {
             scope.or(Some("")).unwrap()
         );
 
-        let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
+        // If we have already determined, no auth is required, no bearer token is needed to be
+        // downloaded.
+        if !self.auth_required {
+            return Ok(());
+        }
 
-        log::trace!("Sending Request to {}", ping_url);
-        let response = self.https_client.get(ping_url).await?;
-        log::trace!("Received Response: {}", response.status());
+        // We have a valid bearer token - No need to get it again.
+        if self.is_valid_bearer_token() {
+            return Ok(());
+        }
 
+        let response = self.ping_repository().await?;
+        if response.status().is_success() {
+            self.auth_required = false;
+            return Ok(());
+        }
+
+        // Got a 401 - We need to get the bearer token
         if response.status() == StatusCode::UNAUTHORIZED {
             log::trace!("Received 401. Checking For 'WWW-Authenticate' header.");
             if let Some(www_auth_header) = response.headers().get("WWW-Authenticate") {
@@ -310,10 +332,9 @@ impl DockerClient {
                     .parse::<Uri>()
                     .unwrap();
                 let auth_response = self.https_client.get(challenge_url).await?;
-                let bearer_token = serde_json::from_slice::<'_, BearerToken>(
-                    to_bytes(auth_response).await?.as_ref(),
-                )
-                .unwrap();
+                let v = to_bytes(auth_response).await?.to_vec();
+                log::trace!("Auth Response: {}", String::from_utf8(v.clone()).unwrap());
+                let bearer_token = serde_json::from_slice::<'_, BearerToken>(&v).unwrap();
 
                 log::trace!(
                     "Got Bearer Token: Issued At: {}, Expiring in: {}",
@@ -343,13 +364,54 @@ impl DockerClient {
         }
     }
 
+    async fn ping_repository(&self) -> Result<Response<Body>, ClientError> {
+        let ping_url = format!("{}v2/", self.repo_url).parse::<Uri>().unwrap();
+
+        log::trace!("Sending Request to {}", ping_url);
+        Ok(self.https_client.get(ping_url).await?)
+    }
+
+    fn is_valid_bearer_token(&self) -> bool {
+        self.bearer_token.is_some() && self.bearer_token.as_ref().unwrap().is_still_valid()
+    }
+
     // FIXME: This is hard-coded right now, when we can parse the header properly,
     // use parsed values.
     #[inline]
-    fn prepare_auth_challenge_url(&self, path: &str, scope: &str, _: &HeaderValue) -> String {
+    fn prepare_auth_challenge_url(
+        &self,
+        path: &str,
+        scope: &str,
+        auth_header: &HeaderValue,
+    ) -> String {
+        log::trace!("{:?}", auth_header);
+        let mut realm: Option<&str> = None;
+        let mut service: Option<&str> = None;
+        let header_vals: Vec<&str> = auth_header.to_str().unwrap().split_whitespace().collect();
+        let auth_type = header_vals.get(0).unwrap();
+        let auth_realm = header_vals.get(1).unwrap();
+        log::trace!("auth_type: {}, auth_realm: {}", auth_type, auth_realm);
+        let _ = auth_realm.split(',').for_each(|v| {
+            let toks: Vec<&str> = v.split('=').collect();
+            if let Some(first) = toks.get(0) {
+                if *first == "realm" {
+                    realm = Some(toks.get(1).unwrap().trim_matches('"'));
+                }
+                if *first == "service" {
+                    service = Some(toks.get(1).unwrap().trim_matches('"'));
+                }
+            }
+        });
+        if realm.is_none() || service.is_none() {
+            panic!("For now!");
+        }
+
         format!(
-            "https://auth.docker.io/token?scope=repository:{}:{}&service=registry.docker.io",
-            path, scope
+            "{}?scope=repository:{}:{}&service={}",
+            realm.unwrap(),
+            path,
+            scope,
+            service.unwrap()
         )
     }
 }

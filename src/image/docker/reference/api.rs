@@ -72,7 +72,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                     log::debug!("Domain is '{}'", domain);
 
                     path_name = String::from(cn.get(2).map_or("", |m| m.as_str()));
-                    if path_name.find('/').is_none() {
+                    if path_name.find('/').is_none() && domain == DEFAULT_DOCKER_DOMAIN {
                         log::debug!("Name(Path) found without '/', Setting the default '{}' prefix for the Name.",
                             DEFAULT_DOCKER_IMGNAME_PREFIX
                         );
