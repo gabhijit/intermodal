@@ -284,3 +284,35 @@ where
     let opt = Option::deserialize(deserializer)?;
     Ok(opt.unwrap_or(HashMap::new()))
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_sample_fedoraproject_schema2image() {
+        let input = r#"
+{"architecture": "amd64", "comment": "Created by Image Factory", "config": {"AttachStderr": false, "AttachStdin": false, "AttachStdout": false, "Cmd": ["/bin/bash"], "Domainname": "", "Entrypoint": null, "Env": ["DISTTAG=f33container", "FGC=f33", "container=oci"], "ExposedPorts": null, "Hostname": "", "Image": "", "Labels": {"name": "fedora", "license": "MIT", "vendor": "Fedora Project", "version": "33"}, "MacAddress": "", "NetworkDisabled": false, "OnBuild": null, "OpenStdin": false, "StdinOnce": false, "Systemd": false, "Tty": false, "User": "", "VolumeDriver": "", "Volumes": null, "WorkingDir": ""}, "container_config": {"AttachStderr": false, "AttachStdin": false, "AttachStdout": false, "Cmd": null, "Domainname": "", "Entrypoint": null, "Env": null, "ExposedPorts": null, "Hostname": "", "Image": "", "Labels": null, "MacAddress": "", "NetworkDisabled": false, "OnBuild": null, "OpenStdin": false, "StdinOnce": false, "Systemd": false, "Tty": false, "User": "", "VolumeDriver": "", "Volumes": null, "WorkingDir": ""}, "created": "2020-10-27T07:49:11Z", "docker_version": "1.10.1", "os": "linux", "history": [{"comment": "Created by Image Factory", "created": "2020-10-27T07:49:11Z"}], "rootfs": {"diff_ids": ["sha256:b4fa6ff1346dec95ce4454464201fdadfd816e10eb7322048829c551ce032d08"], "type": "layers"}}
+    "#;
+        let parsed = serde_json::from_str::<Schema2Image>(input);
+        assert!(parsed.is_ok(), "{}", parsed.err().unwrap())
+    }
+
+    #[test]
+    fn test_sample_quay_io_schema2image() {
+        let input = r#" {"architecture": "amd64", "comment": "Created by Image Factory", "config": {"AttachStderr": false, "AttachStdin": false, "AttachStdout": false, "Cmd": ["/bin/bash"], "Domainname": "", "Entrypoint": null, "Env": ["DISTTAG=f33container", "FGC=f33", "container=oci"], "ExposedPorts": null, "Hostname": "", "Image": "", "Labels": {"name": "fedora", "license": "MIT", "vendor": "Fedora Project", "version": "33"}, "MacAddress": "", "NetworkDisabled": false, "OnBuild": null, "OpenStdin": false, "StdinOnce": false, "Systemd": false, "Tty": false, "User": "", "VolumeDriver": "", "Volumes": null, "WorkingDir": ""}, "container_config": {"AttachStderr": false, "AttachStdin": false, "AttachStdout": false, "Cmd": null, "Domainname": "", "Entrypoint": null, "Env": null, "ExposedPorts": null, "Hostname": "", "Image": "", "Labels": null, "MacAddress": "", "NetworkDisabled": false, "OnBuild": null, "OpenStdin": false, "StdinOnce": false, "Systemd": false, "Tty": false, "User": "", "VolumeDriver": "", "Volumes": null, "WorkingDir": ""}, "created": "2020-10-27T07:49:11Z", "docker_version": "1.10.1", "os": "linux", "history": [{"comment": "Created by Image Factory", "created": "2020-10-27T07:49:11Z"}], "rootfs": {"diff_ids": ["sha256:b4fa6ff1346dec95ce4454464201fdadfd816e10eb7322048829c551ce032d08"], "type": "layers"}}
+            "#;
+        let parsed = serde_json::from_str::<Schema2Image>(input);
+        assert!(parsed.is_ok(), "{}", parsed.err().unwrap())
+    }
+
+    #[test]
+    fn test_sample_docker_io_schema2image() {
+        let input = r##"
+        {"architecture":"amd64","config":{"Hostname":"","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","DISTTAG=f33container","FGC=f33","FBR=f33"],"Cmd":["/bin/bash"],"Image":"sha256:3b1b0c55a47e10ea93d904fc20c39d253f9e1ad770922e8fb4af93dcec6691ce","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{"maintainer":"Clement Verna \u003ccverna@fedoraproject.org\u003e"}},"container":"50cf73b69958473ab2f9a10d3249df073c99b7767ec7f1ff5ffd56da4f35397b","container_config":{"Hostname":"50cf73b69958","Domainname":"","User":"","AttachStdin":false,"AttachStdout":false,"AttachStderr":false,"Tty":false,"OpenStdin":false,"StdinOnce":false,"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin","DISTTAG=f33container","FGC=f33","FBR=f33"],"Cmd":["/bin/sh","-c","#(nop) ","CMD [\"/bin/bash\"]"],"Image":"sha256:3b1b0c55a47e10ea93d904fc20c39d253f9e1ad770922e8fb4af93dcec6691ce","Volumes":null,"WorkingDir":"","Entrypoint":null,"OnBuild":null,"Labels":{"maintainer":"Clement Verna \u003ccverna@fedoraproject.org\u003e"}},"created":"2020-11-12T00:25:31.334712859Z","docker_version":"19.03.12","history":[{"created":"2019-01-16T21:21:55.569693599Z","created_by":"/bin/sh -c #(nop)  LABEL maintainer=Clement Verna \u003ccverna@fedoraproject.org\u003e","empty_layer":true},{"created":"2020-04-30T23:21:44.324893962Z","created_by":"/bin/sh -c #(nop)  ENV DISTTAG=f33container FGC=f33 FBR=f33","empty_layer":true},{"created":"2020-11-12T00:25:30.976066436Z","created_by":"/bin/sh -c #(nop) ADD file:240dde03c4d9f0ad759f8d1291fb45ab2745b6a108c6164d746766239d3420ab in / "},{"created":"2020-11-12T00:25:31.334712859Z","created_by":"/bin/sh -c #(nop)  CMD [\"/bin/bash\"]","empty_layer":true}],"os":"linux","rootfs":{"type":"layers","diff_ids":["sha256:ed0c36ccfcbe08498869bb435711b2657b593806792e29582fa90f43d87b2dfb"]}}
+            "##;
+        let parsed = serde_json::from_str::<Schema2Image>(input);
+        assert!(parsed.is_ok(), "{}", parsed.err().unwrap())
+    }
+}
