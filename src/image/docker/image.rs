@@ -140,13 +140,13 @@ impl Image for DockerImage {
             layers,
 
             labels: if docker_config.is_some() {
-                docker_config.unwrap().labels.as_ref().unwrap().clone()
+                docker_config.unwrap().labels.clone()
             } else {
                 HashMap::new()
             },
 
             env: if docker_config.is_some() {
-                docker_config.unwrap().env.as_ref().unwrap().clone()
+                docker_config.unwrap().env.clone()
             } else {
                 vec![]
             },

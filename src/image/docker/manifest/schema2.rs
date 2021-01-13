@@ -6,9 +6,12 @@ use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::oci::digest::Digest;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Empty {}
 
 /// A Descriptor in docker/distribution Schema 2
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -81,7 +84,7 @@ pub struct Schema2Config {
     pub attach_stderr: bool,
 
     #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
-    pub exposed_ports: Option<String>, // FIXME:
+    pub exposed_ports: Option<HashMap<String, Empty>>, // FIXME:
 
     #[serde(rename = "Tty")]
     pub tty: bool,
@@ -92,11 +95,11 @@ pub struct Schema2Config {
     #[serde(rename = "StdinOnce")]
     pub stdin_once: bool,
 
-    #[serde(default, rename = "Env")]
-    pub env: Option<Vec<String>>,
+    #[serde(default, rename = "Env", deserialize_with = "deserialize_null_vec")]
+    pub env: Vec<String>,
 
-    #[serde(default, rename = "Cmd")]
-    pub cmd: Option<Vec<String>>,
+    #[serde(default, rename = "Cmd", deserialize_with = "deserialize_null_vec")]
+    pub cmd: Vec<String>,
 
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
     pub health_check: Option<Schema2HealthConfig>,
@@ -125,8 +128,8 @@ pub struct Schema2Config {
     #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
     pub on_build: Option<Vec<String>>,
 
-    #[serde(rename = "Labels")]
-    pub labels: Option<HashMap<String, String>>,
+    #[serde(rename = "Labels", deserialize_with = "deserialize_null_map")]
+    pub labels: HashMap<String, String>,
 
     #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
     pub stop_signal: Option<String>,
@@ -264,4 +267,20 @@ pub struct Schema2List {
     pub media_type: String,
 
     pub manifests: Vec<Schema2ManifestDescriptor>,
+}
+
+fn deserialize_null_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or(Vec::new()))
+}
+
+fn deserialize_null_map<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::deserialize(deserializer)?;
+    Ok(opt.unwrap_or(HashMap::new()))
 }

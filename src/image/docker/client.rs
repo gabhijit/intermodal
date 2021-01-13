@@ -419,9 +419,27 @@ impl DockerClient {
 #[derive(Debug, Clone, Deserialize)]
 struct BearerToken {
     token: String,
+
+    #[serde(default = "default_token")] // FIXME:
     access_token: String,
+
+    #[serde(default = "issued_now")] // FIXME:
     issued_at: String,
+
+    #[serde(default = "expires_in_60")]
     expires_in: u16,
+}
+
+fn default_token() -> String {
+    "".to_string()
+}
+
+fn issued_now() -> String {
+    Utc::now().to_rfc3339()
+}
+
+fn expires_in_60() -> u16 {
+    60
 }
 
 impl BearerToken {
