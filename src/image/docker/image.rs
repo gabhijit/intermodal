@@ -120,19 +120,19 @@ impl Image for DockerImage {
             created: docker_image.created.to_string(),
 
             architecture: if docker_image.architecture.is_some() {
-                docker_image.architecture.unwrap().clone()
+                docker_image.architecture.unwrap()
             } else {
                 "".to_string()
             },
 
             docker_version: if docker_image.docker_version.is_some() {
-                docker_image.docker_version.unwrap().clone()
+                docker_image.docker_version.unwrap()
             } else {
                 "".to_string()
             },
 
             os: if docker_image.os.is_some() {
-                docker_image.os.unwrap().clone()
+                docker_image.os.unwrap()
             } else {
                 "".to_string()
             },

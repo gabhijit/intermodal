@@ -271,7 +271,7 @@ impl DockerClient {
         let taginfo: TagInfo = serde_json::from_slice(&to_bytes(response).await?.to_vec())?;
         log::trace!("Received Tags: {:?}", taginfo);
 
-        Ok(taginfo.tags.clone())
+        Ok(taginfo.tags)
     }
 
     #[doc(hidden)]

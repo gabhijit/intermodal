@@ -95,10 +95,10 @@ pub struct Schema2Config {
     #[serde(rename = "StdinOnce")]
     pub stdin_once: bool,
 
-    #[serde(default, rename = "Env", deserialize_with = "deserialize_null_vec")]
+    #[serde(default, rename = "Env", deserialize_with = "deserialize_null_default")]
     pub env: Vec<String>,
 
-    #[serde(default, rename = "Cmd", deserialize_with = "deserialize_null_vec")]
+    #[serde(default, rename = "Cmd", deserialize_with = "deserialize_null_default")]
     pub cmd: Vec<String>,
 
     #[serde(rename = "HealthCheck", skip_serializing_if = "Option::is_none")]
@@ -128,7 +128,7 @@ pub struct Schema2Config {
     #[serde(rename = "OnBuild", skip_serializing_if = "Option::is_none")]
     pub on_build: Option<Vec<String>>,
 
-    #[serde(rename = "Labels", deserialize_with = "deserialize_null_map")]
+    #[serde(rename = "Labels", deserialize_with = "deserialize_null_default")]
     pub labels: HashMap<String, String>,
 
     #[serde(rename = "StopSignal", skip_serializing_if = "Option::is_none")]
@@ -269,20 +269,13 @@ pub struct Schema2List {
     pub manifests: Vec<Schema2ManifestDescriptor>,
 }
 
-fn deserialize_null_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+fn deserialize_null_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
+    T: Default + Deserialize<'de>,
     D: Deserializer<'de>,
 {
     let opt = Option::deserialize(deserializer)?;
-    Ok(opt.unwrap_or(Vec::new()))
-}
-
-fn deserialize_null_map<'de, D>(deserializer: D) -> Result<HashMap<String, String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt = Option::deserialize(deserializer)?;
-    Ok(opt.unwrap_or(HashMap::new()))
+    Ok(opt.unwrap_or_default())
 }
 
 #[cfg(test)]
