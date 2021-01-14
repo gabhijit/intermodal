@@ -3,6 +3,7 @@
 use core::convert::{Into, TryFrom};
 use std::error::Error as StdError;
 use std::fmt;
+use std::sync::RwLock;
 
 use chrono::{DateTime, Duration, Utc};
 use hyper::http::{
@@ -61,13 +62,13 @@ impl From<ClientError> for ImageError {
 }
 
 /// Structure representing a Client for Docker Repository
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(super) struct DockerClient {
     https_client: HyperClient<HttpsConnector<HttpConnector>, Body>,
     repo_url: Uri,
     // FIXME: This should be a Map of <scope, BearerToken>
-    bearer_token: Option<BearerToken>,
-    auth_required: bool,
+    bearer_token: RwLock<Option<BearerToken>>,
+    auth_required: RwLock<bool>,
 }
 
 impl DockerClient {
@@ -107,8 +108,8 @@ impl DockerClient {
         DockerClient {
             https_client,
             repo_url,
-            bearer_token: None,
-            auth_required: true,
+            bearer_token: RwLock::new(None),
+            auth_required: RwLock::new(true),
         }
     }
 
@@ -190,7 +191,7 @@ impl DockerClient {
 
     /// Actually Get the manifest using the current client
     pub(super) async fn do_get_manifest(
-        &mut self,
+        &self,
         path: &str,
         digest_or_tag: &str,
     ) -> Result<ImageManifest, ClientError> {
@@ -206,8 +207,11 @@ impl DockerClient {
         self.get_bearer_token_for_path_scope(path, Some("pull"))
             .await?;
 
-        if self.auth_required {
-            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        if *self.auth_required.read().unwrap() {
+            let auth_header = format!(
+                "Bearer {}",
+                self.bearer_token.read().unwrap().as_ref().unwrap().token
+            );
             headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
         }
 
@@ -229,7 +233,7 @@ impl DockerClient {
     }
 
     pub(super) async fn do_get_blob(
-        &mut self,
+        &self,
         path: &str,
         digest: &Digest,
     ) -> Result<Vec<u8>, ClientError> {
@@ -241,8 +245,11 @@ impl DockerClient {
             .await?;
 
         let mut headers = HeaderMap::new();
-        if self.auth_required {
-            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        if *self.auth_required.read().unwrap() {
+            let auth_header = format!(
+                "Bearer {}",
+                self.bearer_token.read().unwrap().as_ref().unwrap().token
+            );
             headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
         }
 
@@ -253,14 +260,20 @@ impl DockerClient {
         Ok(to_bytes(response).await?.to_vec())
     }
 
-    // FIXME: This should take a mut self so that we can update Bearer Token if required.
     pub(super) async fn do_get_repo_tags(&self, path: &str) -> Result<Vec<String>, ClientError> {
         log::debug!("Getting Tags for the Repository: {}", path);
         let all_tags_url = format!("{}v2/{}/tags/list", self.repo_url, path);
 
+        // This will get the bearer token and store it if required.
+        self.get_bearer_token_for_path_scope(path, Some("pull"))
+            .await?;
+
         let mut headers = HeaderMap::new();
-        if self.auth_required {
-            let auth_header = format!("Bearer {}", self.bearer_token.as_ref().unwrap().token);
+        if *self.auth_required.read().unwrap() {
+            let auth_header = format!(
+                "Bearer {}",
+                self.bearer_token.read().unwrap().as_ref().unwrap().token
+            );
             headers.insert(AUTHORIZATION, auth_header.parse().unwrap());
         }
 
@@ -283,7 +296,7 @@ impl DockerClient {
     /// Note: Only Docker Registry V2 is supported.
     ///
     async fn get_bearer_token_for_path_scope(
-        &mut self,
+        &self,
         path: &str,
         scope: Option<&str>,
     ) -> Result<(), ClientError> {
@@ -295,7 +308,7 @@ impl DockerClient {
 
         // If we have already determined, no auth is required, no bearer token is needed to be
         // downloaded.
-        if !self.auth_required {
+        if !*self.auth_required.read().unwrap() {
             return Ok(());
         }
 
@@ -306,7 +319,8 @@ impl DockerClient {
 
         let response = self.ping_repository().await?;
         if response.status().is_success() {
-            self.auth_required = false;
+            let mut auth_required = self.auth_required.write().unwrap();
+            *auth_required = false;
             return Ok(());
         }
 
@@ -341,8 +355,12 @@ impl DockerClient {
                     bearer_token.issued_at,
                     bearer_token.expires_in
                 );
-                let _ = self.bearer_token.take(); // Get into a variable to drop it
-                self.bearer_token = Some(bearer_token);
+
+                {
+                    let mut bt = self.bearer_token.write().unwrap();
+                    *bt = Some(bearer_token);
+                }
+
                 log::debug!("Bearer Token for Client Saved!");
                 return Ok(());
             } else {
@@ -372,7 +390,14 @@ impl DockerClient {
     }
 
     fn is_valid_bearer_token(&self) -> bool {
-        self.bearer_token.is_some() && self.bearer_token.as_ref().unwrap().is_still_valid()
+        self.bearer_token.read().unwrap().is_some()
+            && self
+                .bearer_token
+                .read()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .is_still_valid()
     }
 
     // FIXME: This is hard-coded right now, when we can parse the header properly,
@@ -486,7 +511,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_api_version_check() {
-        let mut client = DockerClient::new(DOCKER_REGISTRY_V2_HTTPS_URL);
+        let client = DockerClient::new(DOCKER_REGISTRY_V2_HTTPS_URL);
 
         let result = client
             .get_bearer_token_for_path_scope("library/fedora", Some("pull"))

@@ -11,7 +11,7 @@ use super::client::DockerClient;
 use super::reference::types::DockerReference;
 
 /// DockerSource structure. This structure implements `ImageSource` trait.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct DockerSource {
     pub(crate) reference: DockerReference,
     pub(super) client: DockerClient,
@@ -66,7 +66,7 @@ impl ImageSource for DockerSource {
         Ok(self.cached_or_fetch_manifest(digest).await?)
     }
 
-    async fn get_blob(&mut self, digest: &Digest) -> ImageResult<Vec<u8>> {
+    async fn get_blob(&self, digest: &Digest) -> ImageResult<Vec<u8>> {
         Ok(self
             .client
             .do_get_blob(self.reference.path(), digest)
