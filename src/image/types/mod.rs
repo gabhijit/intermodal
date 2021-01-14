@@ -62,6 +62,7 @@ pub trait ImageReference: std::fmt::Debug {
     /// Returns the Image
     fn new_image(&self) -> ImageResult<Box<dyn Image>>;
 
+    /// Returns the DockerReference corresponding to this ImageReference
     fn docker_reference(&self) -> Option<Box<dyn DockerImageReference>> {
         None
     }
@@ -76,7 +77,10 @@ pub trait ImageReference: std::fmt::Debug {
 
 /// A trait that should be implemented by All Image Sources.
 ///
-/// An ImageSource is typically useful while copying the images.
+/// An ImageSource is an ImageReference and a client. The 'client' for the image source handles
+/// 'transport' specific details. Thus we'll have an ImageSource for every soupported transport.
+/// Right now we are supporting only 'docker' (Repo V2) and 'oci' (local FS - TODO).
+///
 #[async_trait]
 pub trait ImageSource: std::fmt::Debug {
     /// Returns a Reference corresponding to this particular ImageSource.
@@ -119,9 +123,21 @@ pub trait Image: std::fmt::Debug {
 
     /// Returns the manifest for the image.
     ///
-    /// This manifest is always a 'resolved' manifest, that is manifest corresponding to the OS /
-    /// Architecture where the caller is running.
+    /// This manifest returns the 'manifest' for the source corresponding to `reference()`.
+    /// The manifest may be of 'list' or 'index' type (if the reference is a tag) or appropriate
+    /// media type (if the reference is a digest).
+    ///
+    /// Usually, if the reference is a user requested, it's likely that the manifest corresponds to
+    /// a user requested tag or default tag 'latest'.
+    ///
     async fn manifest(&mut self) -> ImageResult<ImageManifest>;
+
+    /// Returns the 'Resolved' manifest for the image.
+    ///
+    /// Manifest for the `reference()` is resolved to current OS and Architecture and is returned.
+    /// This manifest will be used to get other image details like config and layer blobs.
+    ///
+    async fn resolved_manifest(&mut self) -> ImageResult<ImageManifest>;
 
     /// Returns the raw config blob for the Image
     async fn config_blob(&mut self) -> ImageResult<Vec<u8>>;

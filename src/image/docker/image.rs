@@ -84,6 +84,10 @@ impl Image for DockerImage {
     }
 
     async fn manifest(&mut self) -> ImageResult<ImageManifest> {
+        Ok(self.source.get_manifest(None).await?)
+    }
+
+    async fn resolved_manifest(&mut self) -> ImageResult<ImageManifest> {
         let original = self.source.get_manifest(None).await?;
 
         Ok(self.resolve_manifest(&original).await?)
@@ -92,7 +96,7 @@ impl Image for DockerImage {
     async fn config_blob(&mut self) -> ImageResult<Vec<u8>> {
         if self.cfgblob.is_none() {
             log::debug!("Config blob is not cached. Downloading Config blob.");
-            let manifest = self.manifest().await?;
+            let manifest = self.resolved_manifest().await?;
             let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
             self.cfgblob = Some(self.source.get_blob(&schema.config.digest).await?);
         }
