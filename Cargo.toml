@@ -1,8 +1,11 @@
 [package]
 name = "intermodal"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Abhijit Gadgil <gabhijit@iitbombay.org>"]
 edition = "2018"
+readme = "REDME.md"
+description = "Container handling in Rust."
+license-file = "LICENSE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
