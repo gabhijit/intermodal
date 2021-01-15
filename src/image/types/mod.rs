@@ -13,9 +13,10 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serde::Serialize;
 
-use crate::image::docker::reference::types::DockerImageReference;
-use crate::oci::digest::Digest;
-use crate::oci::image::spec_v1::Image as OCIv1Image;
+use crate::image::{
+    docker::reference::types::DockerImageReference, oci::digest::Digest,
+    oci::spec_v1::Image as OCIv1Image,
+};
 
 /// A Result of operations related to handling Images
 pub type ImageResult<T> = Result<T, errors::ImageError>;

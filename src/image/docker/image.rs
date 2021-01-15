@@ -3,13 +3,15 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::image::docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST};
-use crate::image::platform::get_os_platform;
-use crate::image::types::{
-    errors::{ImageError, ImageResult},
-    Image, ImageInspect, ImageManifest, ImageReference, ImageSource,
+use crate::image::{
+    docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST},
+    oci::spec_v1::Image as OCIv1Image,
+    platform::get_os_platform,
+    types::{
+        errors::{ImageError, ImageResult},
+        Image, ImageInspect, ImageManifest, ImageReference, ImageSource,
+    },
 };
-use crate::oci::image::spec_v1::Image as OCIv1Image;
 
 use super::manifest::schema2::{Schema2, Schema2Image, Schema2List};
 

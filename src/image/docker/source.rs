@@ -3,9 +3,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
-use crate::image::types::errors::ImageResult;
-use crate::image::types::{ImageManifest, ImageReference, ImageSource};
-use crate::oci::digest::Digest;
+use crate::image::{
+    oci::digest::Digest,
+    types::{errors::ImageResult, ImageManifest, ImageReference, ImageSource},
+};
 
 use super::client::DockerClient;
 use super::reference::types::DockerReference;

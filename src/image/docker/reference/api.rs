@@ -2,7 +2,7 @@
 //!
 //! Note: User's outside this module, should only use public API from this module.
 
-use crate::oci::digest::Digest;
+use crate::image::oci::digest::Digest;
 
 use super::errors::ReferenceError;
 use super::parser::{ANCHORED_CAPTURING_NAME_RE, ANCHORED_REFERENCE_RE};

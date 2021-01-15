@@ -8,7 +8,7 @@ use std::time::Duration as StdDuration;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::oci::digest::Digest;
+use crate::image::oci::digest::Digest;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Empty {}

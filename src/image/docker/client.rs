@@ -17,11 +17,10 @@ use hyper::{
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 
-use crate::image::docker::reference::api::DEFAULT_DOCKER_DOMAIN;
-use crate::image::manifest::DEFAULT_SUPPORTED_MANIFESTS;
-use crate::image::types::errors::ImageError;
-use crate::image::types::ImageManifest;
-use crate::oci::digest::Digest;
+use crate::image::{
+    docker::reference::api::DEFAULT_DOCKER_DOMAIN, manifest::DEFAULT_SUPPORTED_MANIFESTS,
+    oci::digest::Digest, types::errors::ImageError, types::ImageManifest,
+};
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 

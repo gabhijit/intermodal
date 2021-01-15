@@ -1,6 +1,6 @@
 //! Utilities for handling Platforms for Images
 
-use crate::oci::image::spec_v1::Platform;
+use crate::image::oci::spec_v1::Platform;
 
 /// Function that returns OCI Image Spec v1 -> Platform structure.
 ///

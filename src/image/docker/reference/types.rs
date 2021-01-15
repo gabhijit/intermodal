@@ -4,11 +4,13 @@
 
 use std::collections::HashMap;
 
-use crate::image::docker::{
-    client::DockerClient, image::DockerImage, source::DockerSource, transport::DockerTransport,
+use crate::image::{
+    docker::{
+        client::DockerClient, image::DockerImage, source::DockerSource, transport::DockerTransport,
+    },
+    oci::digest::Digest,
+    types::{Image, ImageReference, ImageResult, ImageSource, ImageTransport},
 };
-use crate::image::types::{Image, ImageReference, ImageResult, ImageSource, ImageTransport};
-use crate::oci::digest::Digest;
 
 use super::errors::ReferenceError;
 

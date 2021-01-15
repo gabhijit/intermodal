@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::oci::digest::Digest;
+use crate::image::oci::digest::Digest;
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Descriptor {
