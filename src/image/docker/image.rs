@@ -110,7 +110,7 @@ impl Image for DockerImage {
     }
 
     async fn inspect(&mut self) -> ImageResult<ImageInspect> {
-        let manifest: Schema2 = serde_json::from_slice(&self.manifest().await?.manifest)?;
+        let manifest: Schema2 = serde_json::from_slice(&self.resolved_manifest().await?.manifest)?;
         let layers: Vec<String> = manifest
             .layers
             .iter()
