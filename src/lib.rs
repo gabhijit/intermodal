@@ -9,7 +9,7 @@
 //!
 //! - Manipulating Container Images (inspect, fetch)
 //! - An OCI Compliant Runtime in Rust (spawn containers)
-//! - Implementation of a CRI Server, so this whole thing can run behind a 'kube-proxy'
+//! - Implementation of a CRI Server, so this whole thing can run behind a 'kubelet'
 //!
 //! Also, implementation of utilities for handling containers, images etc. (A reference
 //! implementation using the above library functionality.)
