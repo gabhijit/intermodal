@@ -11,6 +11,8 @@ use std::boxed::Box;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use bytes::Bytes;
+use futures_core::stream::Stream;
 use serde::Serialize;
 
 use crate::image::{
@@ -101,7 +103,10 @@ pub trait ImageSource: std::fmt::Debug {
     ///
     /// It is up to the caller to decide whether the requested blob is a 'config' or a 'layer'
     /// blob.
-    async fn get_blob(&self, digest: &Digest) -> ImageResult<Vec<u8>>; // FIXME: We need some kind of Stream interface here
+    async fn get_blob(
+        &self,
+        digest: &Digest,
+    ) -> ImageResult<Box<dyn Stream<Item = Bytes> + Unpin + Send + Sync>>;
 
     /// Get all tags for this Image source
     ///

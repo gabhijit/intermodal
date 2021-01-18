@@ -1,18 +1,23 @@
 //! Docker client for Image registry
 
 use core::convert::{Into, TryFrom};
+use std::boxed::Box;
 use std::error::Error as StdError;
 use std::fmt;
 use std::sync::RwLock;
 
+use bytes::Bytes;
 use chrono::{DateTime, Duration, Utc};
+use futures_core::stream::Stream;
+use futures_util::StreamExt;
 use hyper::http::{
     header::{ACCEPT, AUTHORIZATION, LOCATION},
     Error as HttpError, HeaderMap, HeaderValue, Method as HttpMethod, StatusCode,
 };
 use hyper::{
-    body::to_bytes, body::Body, client::HttpConnector, Client as HyperClient, Error as HyperError,
-    Request, Response, Uri,
+    body::{to_bytes, Body},
+    client::HttpConnector,
+    Client as HyperClient, Error as HyperError, Request, Response, Uri,
 };
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
@@ -235,7 +240,7 @@ impl DockerClient {
         &self,
         path: &str,
         digest: &Digest,
-    ) -> Result<Vec<u8>, ClientError> {
+    ) -> Result<Box<dyn Stream<Item = Bytes> + Unpin + Send + Sync>, ClientError> {
         let blob_url_path = format!("{}v2/{}/blobs/{}", self.repo_url, path, digest);
         log::debug!("Getting Blob: {}", blob_url_path);
 
@@ -256,7 +261,7 @@ impl DockerClient {
             .perform_http_request(blob_url_path, "GET", Some(&headers), true)
             .await?;
 
-        Ok(to_bytes(response).await?.to_vec())
+        Ok(Box::new(response.into_body().map(|x| x.unwrap())))
     }
 
     pub(super) async fn do_get_repo_tags(&self, path: &str) -> Result<Vec<String>, ClientError> {

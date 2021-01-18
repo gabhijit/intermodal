@@ -2,6 +2,8 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use bytes::Bytes;
+use futures_core::stream::Stream;
 
 use crate::image::{
     oci::digest::Digest,
@@ -67,7 +69,10 @@ impl ImageSource for DockerSource {
         Ok(self.cached_or_fetch_manifest(digest).await?)
     }
 
-    async fn get_blob(&self, digest: &Digest) -> ImageResult<Vec<u8>> {
+    async fn get_blob(
+        &self,
+        digest: &Digest,
+    ) -> ImageResult<Box<dyn Stream<Item = Bytes> + Unpin + Send + Sync>> {
         Ok(self
             .client
             .do_get_blob(self.reference.path(), digest)

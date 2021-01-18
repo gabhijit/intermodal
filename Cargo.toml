@@ -12,8 +12,11 @@ license-file = "LICENSE"
 [dependencies]
 
 clap = "*"
+bytes = { version = "1"}
+futures-core = { version = "0.3", features-default = false }
+futures-util = { version = "0.3", features-default = false }
 tokio = { version = "1", features = ["macros", "rt"] }
-hyper = { version = "0.14.2", features = ["client", "http1"] }
+hyper = { version = "0.14.2", features = ["client", "http1", "stream"] }
 hyper-tls = { version = "0.5" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0.117", features = ["derive"] }

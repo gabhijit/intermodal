@@ -13,6 +13,8 @@ use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::string::String;
 
+use futures_core::stream::Stream;
+use futures_util::StreamExt;
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
@@ -51,6 +53,17 @@ impl Digest {
         };
 
         None
+    }
+
+    pub async fn verify<S>(&self, stream: &mut S) -> bool
+    where
+        S: Stream + Send + Sync + Unpin,
+    {
+        while let Some(_data) = stream.next().await {
+            // FIXME: Actually implement a digester
+            //
+        }
+        true
     }
 }
 

@@ -2,6 +2,8 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use bytes::BufMut;
+use futures_util::StreamExt;
 
 use crate::image::{
     docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST},
@@ -100,7 +102,21 @@ impl Image for DockerImage {
             log::debug!("Config blob is not cached. Downloading Config blob.");
             let manifest = self.resolved_manifest().await?;
             let schema: Schema2 = serde_json::from_slice(&manifest.manifest)?;
-            self.cfgblob = Some(self.source.get_blob(&schema.config.digest).await?);
+            let cfgblob = self.source.get_blob(&schema.config.digest).await?;
+
+            futures_util::pin_mut!(cfgblob);
+
+            let mut blobvec = Vec::new();
+
+            while let Some(data) = cfgblob.next().await {
+                blobvec.put(data);
+            }
+
+            self.cfgblob = Some(blobvec);
+            log::trace!(
+                "Config Blob: {}",
+                String::from_utf8(self.cfgblob.as_ref().unwrap().to_vec()).unwrap()
+            );
         }
         Ok(self.cfgblob.as_ref().unwrap().clone())
     }
