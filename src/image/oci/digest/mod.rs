@@ -25,6 +25,16 @@ pub struct Digest {
     hex_digest: String,
 }
 
+impl Default for Digest {
+    fn default() -> Self {
+        Digest {
+            algorithm: "sha256".to_string(),
+            hex_digest: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                .to_string(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum DigestError {
     DigestParseError,

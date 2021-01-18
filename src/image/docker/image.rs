@@ -1,5 +1,4 @@
 //! Implementation of a 'trait Image' for Docker
-use std::collections::HashMap;
 
 use async_trait::async_trait;
 use bytes::BufMut;
@@ -15,7 +14,7 @@ use crate::image::{
     },
 };
 
-use super::manifest::schema2::{Schema2, Schema2Image, Schema2List};
+use super::manifest::schema2::{Schema2, Schema2Config, Schema2Image, Schema2List};
 
 /// A `DockerImage` is a resolved Image which contains a source (`DockerSource`) and a 'blob' that
 /// can be deserialized to  a `Schema2` struct.
@@ -140,38 +139,19 @@ impl Image for DockerImage {
 
         Ok(ImageInspect {
             created: docker_image.created.to_string(),
-
-            architecture: if docker_image.architecture.is_some() {
-                docker_image.architecture.unwrap()
-            } else {
-                "".to_string()
-            },
-
-            docker_version: if docker_image.docker_version.is_some() {
-                docker_image.docker_version.unwrap()
-            } else {
-                "".to_string()
-            },
-
-            os: if docker_image.os.is_some() {
-                docker_image.os.unwrap()
-            } else {
-                "".to_string()
-            },
-
+            architecture: docker_image.architecture.unwrap_or("".to_string()),
+            docker_version: docker_image.docker_version.unwrap_or("".to_string()),
+            os: docker_image.os.unwrap_or("".to_string()),
             layers,
+            labels: docker_config
+                .unwrap_or(&Schema2Config::default())
+                .labels
+                .clone(),
 
-            labels: if docker_config.is_some() {
-                docker_config.unwrap().labels.clone()
-            } else {
-                HashMap::new()
-            },
-
-            env: if docker_config.is_some() {
-                docker_config.unwrap().env.clone()
-            } else {
-                vec![]
-            },
+            env: docker_config
+                .unwrap_or(&Schema2Config::default())
+                .env
+                .clone(),
         })
     }
 }

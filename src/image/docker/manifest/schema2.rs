@@ -63,7 +63,7 @@ pub struct Schema2HealthConfig {
 }
 
 /// Schema2Config from docker/api/types/container
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2Config {
     #[serde(rename = "Hostname")]
     pub hostname: String,
