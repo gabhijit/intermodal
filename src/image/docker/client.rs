@@ -8,7 +8,7 @@ use std::sync::RwLock;
 
 use bytes::Bytes;
 use chrono::{DateTime, Duration, Utc};
-use futures_core::stream::Stream;
+use futures::stream::Stream;
 use futures_util::StreamExt;
 use hyper::http::{
     header::{ACCEPT, AUTHORIZATION, LOCATION},

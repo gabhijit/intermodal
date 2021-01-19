@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use futures_core::stream::Stream;
+use futures::stream::Stream;
 
 use crate::image::{
     oci::digest::Digest,

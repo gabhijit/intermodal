@@ -13,11 +13,13 @@ use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::string::String;
 
-use futures_core::stream::Stream;
+use bytes::Buf;
+use futures::stream::Stream;
 use futures_util::StreamExt;
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
+use sha2::digest::DynDigest;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Digest {
@@ -35,15 +37,34 @@ impl Default for Digest {
     }
 }
 
+impl Digest {
+    fn digester(&self) -> Result<Box<dyn DynDigest>, DigestError> {
+        match &*self.algorithm.to_lowercase() {
+            "sha256" => Ok(Box::new(sha2::Sha256::default())),
+            _ => Err(DigestError::AlgorithmNotSupported(
+                self.algorithm.to_string(),
+            )),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum DigestError {
-    DigestParseError,
+    CannotParse(String),
+    AlgorithmNotSupported(String),
+    InvalidDigest,
 }
 
 impl Display for DigestError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match *self {
-            DigestError::DigestParseError => write!(f, "Error in Parsing Digest From String"),
+            DigestError::CannotParse(ref s) => {
+                write!(f, "Error in Parsing Digest From Input: '{}'", s)
+            }
+            DigestError::AlgorithmNotSupported(ref s) => {
+                write!(f, "Digest Algorithm: {} Not supported.", s)
+            }
+            DigestError::InvalidDigest => write!(f, "Computed Digest does not match."),
         }
     }
 }
@@ -68,12 +89,17 @@ impl Digest {
     pub async fn verify<S>(&self, stream: &mut S) -> bool
     where
         S: Stream + Send + Sync + Unpin,
+        S::Item: Buf,
     {
-        while let Some(_data) = stream.next().await {
-            // FIXME: Actually implement a digester
-            //
+        let mut digester = self.digester().unwrap();
+
+        digester.reset();
+        while let Some(data) = stream.next().await {
+            digester.update(data.chunk());
         }
-        true
+        let result = digester.finalize();
+
+        hex::encode(result) == self.hex_digest
     }
 }
 
@@ -141,7 +167,10 @@ impl FromStr for Digest {
             });
         }
 
-        Err(DigestError::DigestParseError)
+        Err(DigestError::CannotParse(format!(
+            "Cannot Parse '{}' as a Digest",
+            s
+        )))
     }
 }
 
@@ -149,6 +178,8 @@ impl FromStr for Digest {
 mod tests {
 
     use super::*;
+    use bytes::Bytes;
+    use futures::stream;
 
     #[test]
     fn test_serialize() {
@@ -174,5 +205,13 @@ mod tests {
         let res = serde_json::from_str::<Digest>("\"deadbeef\"");
 
         assert!(res.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_verify_success() {
+        let mut s = stream::empty::<Bytes>();
+        let d = Digest::default();
+
+        assert!(d.verify(&mut s).await);
     }
 }
