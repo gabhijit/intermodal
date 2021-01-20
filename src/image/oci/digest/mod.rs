@@ -19,7 +19,7 @@ use futures_util::StreamExt;
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
-use sha2::digest::DynDigest;
+use sha2::{digest::DynDigest, Digest as ShaDigest, Sha256};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Digest {
@@ -38,6 +38,20 @@ impl Default for Digest {
 }
 
 impl Digest {
+    /// Return a Sha256 Digest For the given Vector of bytes.
+    ///
+    /// Sha256 is our default algorith,
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let mut hasher = Sha256::new();
+        <Sha256 as ShaDigest>::reset(&mut hasher);
+        <Sha256 as ShaDigest>::update(&mut hasher, bytes);
+
+        Digest {
+            algorithm: "sha256".to_string(),
+            hex_digest: hex::encode(hasher.finalize()),
+        }
+    }
+
     fn digester(&self) -> Result<Box<dyn DynDigest>, DigestError> {
         match &*self.algorithm.to_lowercase() {
             "sha256" => Ok(Box::new(sha2::Sha256::default())),

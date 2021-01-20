@@ -139,9 +139,9 @@ impl Image for DockerImage {
 
         Ok(ImageInspect {
             created: docker_image.created.to_string(),
-            architecture: docker_image.architecture.unwrap_or("".to_string()),
-            docker_version: docker_image.docker_version.unwrap_or("".to_string()),
-            os: docker_image.os.unwrap_or("".to_string()),
+            architecture: docker_image.architecture.unwrap_or_default(),
+            docker_version: docker_image.docker_version.unwrap_or_default(),
+            os: docker_image.os.unwrap_or_default(),
             layers,
             labels: docker_config
                 .unwrap_or(&Schema2Config::default())

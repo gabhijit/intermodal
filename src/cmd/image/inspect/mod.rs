@@ -7,7 +7,7 @@ use std::string::String;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use serde::Serialize;
 
-use crate::image::transports;
+use crate::image::{oci::digest::Digest, transports};
 
 // We use references because, this will be generated from underlying 'image.inspect' struct.
 // which contains 'owned' values, For our case, the underlying struct will 'outlive' this.
@@ -92,6 +92,8 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
         log::debug!("calling get_manifest");
         let manifest = image.manifest().await?;
 
+        let digeststr = Digest::from_bytes(&manifest.manifest).to_string();
+
         if raw {
             println!(
                 "Manifest for {}: {}",
@@ -121,7 +123,7 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                 let output = InspectOutput {
                     name: reference_name,
                     tag: None, // FIXME: Get from Docker Reference Tag
-                    digest: "",
+                    digest: &digeststr,
                     repo_tags: &tags,
                     created: &inspect_data.created,
                     docker_version: &inspect_data.docker_version,

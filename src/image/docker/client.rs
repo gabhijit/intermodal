@@ -404,8 +404,6 @@ impl DockerClient {
                 .is_still_valid()
     }
 
-    // FIXME: This is hard-coded right now, when we can parse the header properly,
-    // use parsed values.
     #[inline]
     fn prepare_auth_challenge_url(
         &self,

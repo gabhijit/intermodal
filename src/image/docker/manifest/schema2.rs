@@ -141,7 +141,6 @@ pub struct Schema2Config {
     pub shell: Option<String>, // FIXME: &'static str?
 }
 
-// FIXME: Get this right
 /// Schema2Image struct from docker/docker/image
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schema2Image {

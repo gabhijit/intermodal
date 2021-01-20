@@ -4,6 +4,9 @@ use std::collections::HashMap;
 
 use crate::image::oci::digest::Digest;
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Empty {}
+
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,7 +114,7 @@ pub struct ImageConfig {
         skip_serializing_if = "Option::is_none",
         rename = "ExposedPorts"
     )]
-    pub exposed_ports: Option<HashMap<String, String>>, // FIXME: Use correct type
+    pub exposed_ports: Option<HashMap<String, Empty>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Env")]
     pub env: Option<Vec<String>>,
