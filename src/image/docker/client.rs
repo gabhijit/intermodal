@@ -86,9 +86,15 @@ impl DockerClient {
         } else {
             repo_url = repository.parse::<Uri>().unwrap();
 
+            let scheme: &str;
+            if repo_url.port().is_some() {
+                scheme = "http";
+            } else {
+                scheme = "https";
+            };
             if repo_url.scheme().is_none() {
                 repo_url = Uri::builder()
-                    .scheme("https")
+                    .scheme(scheme)
                     .authority(repository)
                     .path_and_query("/")
                     .build()
@@ -98,7 +104,7 @@ impl DockerClient {
 
         log::debug!("Getting DockerClient for '{}'.", repo_url);
 
-        let mut https_only = true;
+        let mut https_only = false;
         if repo_url.scheme_str().is_none() || repo_url.scheme_str() == Some("http") {
             https_only = false;
             log::warn!("Using Non HTTPS scheme for the URL.");
