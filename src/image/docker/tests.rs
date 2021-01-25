@@ -1,16 +1,49 @@
 use env_logger::Env;
-use wiremock::{matchers::method, Mock, ResponseTemplate};
+use wiremock::{
+    matchers::{method, path},
+    Mock, MockServer, ResponseTemplate,
+};
 
-use super::{testdata::DOCKER_LIST_MANIFEST_BLOB, MEDIA_TYPE_DOCKER_V2_LIST};
+use super::{
+    testdata::{DOCKER_IMAGE_MANIFEST_BLOB, DOCKER_LIST_MANIFEST_BLOB},
+    MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST,
+};
 use crate::image::{
     transports,
     types::{errors::ImageError, ImageReference},
 };
 
 fn init() {
-    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("error"))
+    let _ = env_logger::Builder::from_env(Env::default().default_filter_or("trace"))
         .is_test(true)
         .try_init();
+}
+
+async fn setup_mock_docker_api_server() -> MockServer {
+    let mock_server = MockServer::start().await;
+
+    let mock_ping = Mock::given(method("GET"))
+        .and(path("/v2/"))
+        .respond_with(ResponseTemplate::new(200));
+    mock_server.register(mock_ping).await;
+
+    let mock_list_response = ResponseTemplate::new(200).set_body_raw(
+        DOCKER_LIST_MANIFEST_BLOB.as_bytes().to_owned(),
+        MEDIA_TYPE_DOCKER_V2_LIST,
+    );
+    let mock_list_manifest = Mock::given(method("GET"))
+        .and(path("/v2/library/fedora/manifests/latest"))
+        .respond_with(mock_list_response);
+    mock_server.register(mock_list_manifest).await;
+
+    let mock_blob_response = ResponseTemplate::new(200).set_body_raw(
+        DOCKER_IMAGE_MANIFEST_BLOB.as_bytes().to_owned(),
+        MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST,
+    );
+    let mock_blob_manifest = Mock::given(method("GET")).and(path("/v2/library/fedora/manifests/sha256:fdf235fa167d2aa5d820fba274ec1d2edeb0534bd32d28d602a19b31bad79b80")).respond_with(mock_blob_response);
+    mock_server.register(mock_blob_manifest).await;
+
+    mock_server
 }
 
 fn create_mock_reference<'a>(
@@ -21,7 +54,7 @@ fn create_mock_reference<'a>(
 
 #[tokio::test]
 async fn test_new_image() {
-    let server = wiremock::MockServer::start().await;
+    let server = setup_mock_docker_api_server().await;
     let image_name = format!("docker://{}/library/fedora", server.address());
 
     let mock_ref = create_mock_reference(&image_name);
@@ -34,18 +67,9 @@ async fn test_new_image() {
 #[tokio::test]
 async fn test_get_manifest_list_success() {
     init();
+    let mock_server = setup_mock_docker_api_server().await;
 
-    let mock_server = wiremock::MockServer::start().await;
     let image_name = format!("docker://{}/library/fedora", mock_server.address());
-
-    let mock_response = ResponseTemplate::new(200).set_body_raw(
-        DOCKER_LIST_MANIFEST_BLOB.as_bytes().to_owned(),
-        MEDIA_TYPE_DOCKER_V2_LIST,
-    );
-
-    let mock_manifest = Mock::given(method("GET")).respond_with(mock_response);
-
-    mock_server.register(mock_manifest).await;
 
     let mock_ref = create_mock_reference(&image_name);
     assert!(mock_ref.is_ok(), "{:?}", mock_ref);
@@ -64,18 +88,9 @@ async fn test_get_manifest_list_success() {
 #[tokio::test]
 async fn test_get_resolved_manifest() {
     init();
+    let mock_server = setup_mock_docker_api_server().await;
 
-    let mock_server = wiremock::MockServer::start().await;
     let image_name = format!("docker://{}/library/fedora", mock_server.address());
-
-    let mock_response = ResponseTemplate::new(200).set_body_raw(
-        DOCKER_LIST_MANIFEST_BLOB.as_bytes().to_owned(),
-        MEDIA_TYPE_DOCKER_V2_LIST,
-    );
-
-    let mock_manifest = Mock::given(method("GET")).respond_with(mock_response);
-
-    mock_server.register(mock_manifest).await;
 
     let mock_ref = create_mock_reference(&image_name);
     assert!(mock_ref.is_ok(), "{:?}", mock_ref);
@@ -86,7 +101,7 @@ async fn test_get_resolved_manifest() {
     let image = mock_ref.new_image();
     assert!(image.is_ok());
 
-    let manifest = image.unwrap().manifest().await;
+    let manifest = image.unwrap().resolved_manifest().await;
 
     assert!(manifest.is_ok(), "ref: {:?}, {:?}", ref_str, manifest);
 }
