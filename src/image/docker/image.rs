@@ -114,7 +114,7 @@ impl Image for DockerImage {
             self.cfgblob = Some(blobvec);
             log::trace!(
                 "Config Blob: {}",
-                String::from_utf8(self.cfgblob.as_ref().unwrap().to_vec()).unwrap()
+                std::str::from_utf8(&self.cfgblob.as_ref().unwrap().to_vec()).unwrap()
             );
         }
         Ok(self.cfgblob.as_ref().unwrap().clone())
@@ -132,7 +132,10 @@ impl Image for DockerImage {
             .map(|l| l.digest.to_string())
             .collect();
 
-        log::debug!("{}", String::from_utf8(self.config_blob().await?).unwrap());
+        log::debug!(
+            "{}",
+            std::str::from_utf8(&self.config_blob().await?).unwrap()
+        );
 
         let docker_image: Schema2Image = serde_json::from_slice(&self.config_blob().await?)?;
         let docker_config = docker_image.config.as_ref();

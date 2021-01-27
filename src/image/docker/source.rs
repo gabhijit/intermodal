@@ -54,7 +54,7 @@ impl DockerSource {
 
         log::trace!(
             "Got Manifest: {:#?}",
-            manifest.manifest //std::str::from_utf8(&manifest.manifest).unwrap()
+            std::str::from_utf8(&manifest.manifest).unwrap()
         );
         log::trace!("Saving Manifest in the cache!");
         self.manifest_cache.insert(digest_or_tag, manifest.clone());

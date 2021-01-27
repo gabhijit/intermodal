@@ -357,7 +357,7 @@ impl DockerClient {
                     .unwrap();
                 let auth_response = self.https_client.get(challenge_url).await?;
                 let v = to_bytes(auth_response).await?.to_vec();
-                log::trace!("Auth Response: {}", String::from_utf8(v.clone()).unwrap());
+                log::trace!("Auth Response: {}", std::str::from_utf8(&v).unwrap());
                 let bearer_token = serde_json::from_slice::<'_, BearerToken>(&v).unwrap();
 
                 log::trace!(

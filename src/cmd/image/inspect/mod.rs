@@ -98,7 +98,7 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
             println!(
                 "Manifest for {}: {}",
                 image_name,
-                String::from_utf8(manifest.manifest).unwrap()
+                std::str::from_utf8(&manifest.manifest).unwrap()
             );
         }
 
@@ -108,7 +108,7 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                 println!(
                     "Config Blob for Image '{}' : {}",
                     image_name,
-                    String::from_utf8(image.config_blob().await?).unwrap()
+                    std::str::from_utf8(&image.config_blob().await?).unwrap()
                 );
             } else {
                 let inspect_data = image.inspect().await?;
