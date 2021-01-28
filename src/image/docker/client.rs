@@ -162,16 +162,17 @@ impl DockerClient {
             Ok(response)
         } else {
             if !handle_redirects {
-                let errstr = format!("Error in downloading Blob: {}", status);
-                log::error!("{}", &errstr);
-                return Err(ClientError(errstr));
+                crate::log_err_return!(ClientError, "Error in Downloading Blob: {}", status);
             }
             if status.is_redirection() {
                 if !response.headers().contains_key(LOCATION) {
                     let loc = LOCATION;
-                    let errstr = format!("Redirect received but no {:?} Header.", loc);
-                    log::error!("{}", &errstr);
-                    return Err(ClientError(errstr));
+
+                    crate::log_err_return!(
+                        ClientError,
+                        "Redirect received but no {:?} Header.",
+                        loc
+                    );
                 }
                 let redirect_url = response.headers().get(LOCATION).unwrap().to_str().unwrap();
                 log::trace!(
@@ -193,9 +194,7 @@ impl DockerClient {
                 }
             }
 
-            let errstr = format!("Error in downloading : {}", status);
-            log::error!("{}", &errstr);
-            Err(ClientError(errstr))
+            crate::log_err_return!(ClientError, "Error in Downloading: {}", status);
         }
     }
 
@@ -374,21 +373,18 @@ impl DockerClient {
                 log::debug!("Bearer Token for Client Saved!");
                 return Ok(());
             } else {
-                let errstr = format!(
+                crate::log_err_return!(
+                    ClientError,
                     "No 'WWW-Authenticate' Header found with {}",
                     response.status()
                 );
-                log::error!("{}", &errstr);
-                return Err(ClientError(errstr));
             }
         } else if response.status().is_success() {
             // unlikely path
             log::warn!("No Bearer Token for Client, but Ping response Success!. Bearer Token Not Obtained (and saved)!");
             return Ok(());
         } else {
-            let errstr = format!("Error Getting Token: {}", response.status());
-            log::error!("{}", &errstr);
-            return Err(ClientError(errstr));
+            crate::log_err_return!(ClientError, "Error Getting Token: {}", response.status());
         }
     }
 

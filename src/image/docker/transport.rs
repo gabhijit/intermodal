@@ -54,6 +54,7 @@ impl ImageTransport for DockerTransport {
         let tokens: Vec<&str> = reference.split("//").collect();
 
         if tokens.len() != 2 {
+            // FIXME: Use macros below
             let errstr = format!(
                 "Input Image Reference '{}' does not contain separator '//'",
                 reference
