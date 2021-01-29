@@ -10,7 +10,6 @@
 
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
-use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::String;
 
@@ -53,7 +52,7 @@ impl Digest {
         }
     }
 
-    fn digester(&self) -> Result<Box<dyn DynDigest>, DigestError> {
+    fn digester(&self) -> Result<Box<dyn DynDigest + Send>, DigestError> {
         match &*self.algorithm.to_lowercase() {
             "sha256" => Ok(Box::new(sha2::Sha256::default())),
             _ => Err(DigestError::AlgorithmNotSupported(
@@ -89,6 +88,14 @@ impl Error for DigestError {}
 struct DigestVisitor;
 
 impl Digest {
+    pub fn algorithm(&self) -> &str {
+        &self.algorithm
+    }
+
+    pub fn hex_digest(&self) -> &str {
+        &self.hex_digest
+    }
+
     pub fn new_from_str(s: &str) -> Option<Self> {
         let tokens: Vec<&str> = s.split(':').collect();
         if tokens.len() == 2 {
@@ -167,13 +174,6 @@ impl Serialize for Digest {
 impl Display for Digest {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.algorithm, self.hex_digest)
-    }
-}
-
-impl Into<PathBuf> for Digest {
-    #[inline]
-    fn into(self) -> PathBuf {
-        format!("{}/{}", self.algorithm, self.hex_digest).into()
     }
 }
 

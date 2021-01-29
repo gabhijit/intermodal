@@ -21,6 +21,8 @@ use hyper::{
 };
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
+use tokio::{fs::File, io::AsyncWriteExt};
+use tokio_util::io::ReaderStream;
 
 use crate::image::{
     docker::reference::api::DEFAULT_DOCKER_DOMAIN, manifest::DEFAULT_SUPPORTED_MANIFESTS,
@@ -57,6 +59,12 @@ impl From<HyperError> for ClientError {
 impl From<serde_json::Error> for ClientError {
     fn from(e: serde_json::Error) -> Self {
         ClientError(format!("Serde JSON Error: {}", e))
+    }
+}
+
+impl From<std::io::Error> for ClientError {
+    fn from(e: std::io::Error) -> Self {
+        ClientError(e.to_string())
     }
 }
 
@@ -267,10 +275,46 @@ impl DockerClient {
             .perform_http_request(blob_url_path, "GET", Some(&headers), true)
             .await?;
 
-        // let cache_path = image_blobs_cache_root().map_err(|e| ClientError(e.to_string()))?;
-        // cache_path.push(digest.clone().into::<PathBuf>());
+        let mut blobpath = std::env::temp_dir();
+        blobpath.push("blobs");
+        blobpath.push(digest.algorithm());
+        std::fs::create_dir_all(&blobpath)?;
 
-        Ok(Box::new(response.into_body().map(|x| x.unwrap())))
+        blobpath.push(digest.hex_digest());
+        let mut f = File::create(&blobpath).await?;
+
+        let mut body = response.into_body();
+        while let Some(data) = body.next().await {
+            let data = data?;
+            let _ = f.write(&data).await?;
+        }
+        f.flush().await?;
+
+        log::trace!("***** Blobpath: {:?}", &blobpath);
+
+        let f = File::open(&blobpath).await?;
+        let result = digest
+            .verify(&mut ReaderStream::new(f).map(|x| x.unwrap()))
+            .await;
+        if !result {
+            crate::log_err_return!(
+                ClientError,
+                "Digest Verification failed for Digest: {}",
+                digest
+            );
+        }
+
+        log::trace!("Result of verify: {}", result);
+
+        let mut cache_path = image_blobs_cache_root()?;
+        cache_path.push(&digest.algorithm());
+        std::fs::create_dir_all(&cache_path)?;
+        cache_path.push(digest.hex_digest());
+        std::fs::rename(&blobpath, &cache_path)?;
+
+        let f = File::open(cache_path).await?;
+
+        Ok(Box::new(ReaderStream::new(f).map(|x| x.unwrap())))
     }
 
     pub(super) async fn do_get_repo_tags(&self, path: &str) -> Result<Vec<String>, ClientError> {
