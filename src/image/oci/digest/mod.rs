@@ -10,6 +10,7 @@
 
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::string::String;
 
@@ -166,6 +167,13 @@ impl Serialize for Digest {
 impl Display for Digest {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.algorithm, self.hex_digest)
+    }
+}
+
+impl Into<PathBuf> for Digest {
+    #[inline]
+    fn into(self) -> PathBuf {
+        format!("{}/{}", self.algorithm, self.hex_digest).into()
     }
 }
 

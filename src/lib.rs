@@ -20,6 +20,7 @@
 
 pub mod cmd;
 pub mod image;
+pub mod utils;
 
 // FIXME: Not sure how to use below, but better to get started.
 #[macro_export]

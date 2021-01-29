@@ -26,6 +26,7 @@ use crate::image::{
     docker::reference::api::DEFAULT_DOCKER_DOMAIN, manifest::DEFAULT_SUPPORTED_MANIFESTS,
     oci::digest::Digest, types::errors::ImageError, types::ImageManifest,
 };
+use crate::utils::image_blobs_cache_root;
 
 const DOCKER_REGISTRY_V2_HTTPS_URL: &str = "https://registry-1.docker.io";
 
@@ -265,6 +266,9 @@ impl DockerClient {
         let response = self
             .perform_http_request(blob_url_path, "GET", Some(&headers), true)
             .await?;
+
+        // let cache_path = image_blobs_cache_root().map_err(|e| ClientError(e.to_string()))?;
+        // cache_path.push(digest.clone().into::<PathBuf>());
 
         Ok(Box::new(response.into_body().map(|x| x.unwrap())))
     }
