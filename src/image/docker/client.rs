@@ -151,7 +151,7 @@ impl DockerClient {
         let mut request = Request::builder()
             .method(method)
             .uri(url)
-            .body(Body::from("")) // FIXME: Body
+            .body(Body::from(""))
             .unwrap();
 
         if headers.is_some() {
@@ -192,7 +192,7 @@ impl DockerClient {
                 let request = Request::builder()
                     .method(method)
                     .uri::<&str>(redirect_url)
-                    .body(Body::from("")) // FIXME: Body
+                    .body(Body::from(""))
                     .unwrap();
 
                 log::trace!("Sending Request: {:#?}", request);
@@ -497,10 +497,10 @@ impl DockerClient {
 struct BearerToken {
     token: String,
 
-    #[serde(default = "default_token")] // FIXME:
+    #[serde(default = "default_token")]
     access_token: String,
 
-    #[serde(default = "issued_now")] // FIXME:
+    #[serde(default = "issued_now")]
     issued_at: String,
 
     #[serde(default = "expires_in_60")]

@@ -58,8 +58,6 @@ pub struct Index {
     pub annotations: Option<HashMap<String, String>>,
 }
 
-// FIXME: Not sure what to do with the constants?
-
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageLayout {
     #[serde(rename = "imageLayoutVersion")]
@@ -130,7 +128,7 @@ pub struct ImageConfig {
     pub cmd: Option<Vec<String>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "Volumes")]
-    pub volumes: Option<HashMap<String, String>>, // FIXME: Use correct type
+    pub volumes: Option<HashMap<String, Empty>>,
 
     #[serde(
         default,
@@ -155,7 +153,7 @@ pub struct RootFS {
     #[serde(default, rename = "type")]
     pub type_: String,
 
-    pub diff_ids: Vec<String>, // FIXME: This should be proper digest type.
+    pub diff_ids: Vec<Digest>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]

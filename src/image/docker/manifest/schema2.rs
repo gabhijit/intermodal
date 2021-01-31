@@ -84,7 +84,7 @@ pub struct Schema2Config {
     pub attach_stderr: bool,
 
     #[serde(rename = "ExposedPorts", skip_serializing_if = "Option::is_none")]
-    pub exposed_ports: Option<HashMap<String, Empty>>, // FIXME:
+    pub exposed_ports: Option<HashMap<String, Empty>>,
 
     #[serde(rename = "Tty")]
     pub tty: bool,

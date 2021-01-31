@@ -160,7 +160,6 @@ async fn test_get_image_inspect() {
 
     let inspect = inspect.unwrap();
 
-    // FIXME: This should not be hard-coded, but okay for now.
     assert_eq!(inspect.architecture, "amd64");
     assert_eq!(inspect.os, "linux");
 }

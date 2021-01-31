@@ -18,7 +18,7 @@ struct InspectOutput<'a> {
     name: Option<String>,
 
     #[serde(rename = "Tag", skip_serializing_if = "Option::is_none")]
-    tag: Option<&'a str>,
+    tag: Option<String>,
 
     #[serde(rename = "Digest")]
     digest: &'a str,
@@ -115,14 +115,18 @@ pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
                 let tags = image.source_ref().get_repo_tags().await?;
                 log::debug!("Tags: {:#?}", tags);
 
-                let reference_name = match image_ref.docker_reference() {
-                    Some(r) => Some(r.name()),
-                    None => None,
-                };
+                let docker_ref = image_ref.docker_reference();
+
+                let mut reference_name: Option<String> = None;
+                let mut reference_tag: Option<String> = None;
+                if docker_ref.is_some() {
+                    reference_name = Some(docker_ref.as_ref().unwrap().name());
+                    reference_tag = Some(docker_ref.as_ref().unwrap().tag());
+                }
 
                 let output = InspectOutput {
                     name: reference_name,
-                    tag: None, // FIXME: Get from Docker Reference Tag
+                    tag: reference_tag,
                     digest: &digeststr,
                     repo_tags: &tags,
                     created: &inspect_data.created,
