@@ -51,6 +51,37 @@ pub fn image_blobs_cache_clear() -> std::io::Result<()> {
     }
 }
 
+/// Get's the Local Path for OCI Images.
+///
+/// Local images are stored in a directory on the FS. The images are stored using a Layout
+/// recommended in OCI Spec:
+/// https://github.com/opencontainers/image-spec/blob/master/image-layout.md.
+/// This API is used to get a Path to the local directory containing the root of all 'locally'
+/// available Images stored in OCI Format. The images themselves are stored inside a directory
+/// identified by the image name eg. Let's say there's an image called 'fedora', the way this will
+/// be stored on the local directory is as follows -
+/// <OCI-IMAGES-ROOT>/fedora/<IMAGE-LAYOUT>
+///
+/// Of the above, <OCI-IMAGES-ROOT> path is returned by the current function.
+pub fn oci_images_root() -> std::io::Result<PathBuf> {
+    let mut images_root_dir = match ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION) {
+        Some(p) => p.data_local_dir().to_path_buf(),
+        None => {
+            log::warn!("No Local Data Directory found, using temporary directory.");
+            std::env::temp_dir()
+        }
+    };
+
+    let _ = images_root_dir.push("images");
+
+    if !images_root_dir.exists() {
+        log::debug!("Images Root Directory does not exist. Creating.");
+        std::fs::create_dir_all(&images_root_dir)?;
+    }
+
+    Ok(images_root_dir)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -59,6 +90,12 @@ mod tests {
     #[test]
     fn test_get_blobs_cache_dir() {
         let r = image_blobs_cache_root();
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_get_oci_images_root() {
+        let r = oci_images_root();
         assert!(r.is_ok());
     }
 }
