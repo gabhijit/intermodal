@@ -21,6 +21,9 @@ pub struct Descriptor {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform: Option<Platform>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<HashMap<String, String>>,
 }
 
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
