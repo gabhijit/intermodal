@@ -7,6 +7,12 @@ use crate::image::oci::digest::Digest;
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Empty {}
 
+/// Struct representing a 'descriptor'.
+///
+/// This structure implements a 'descriptor' defined in OCI Image Spec v1
+/// [description] (https://github.com/opencontainers/image-spec/blob/master/descriptor.md)
+/// [Go definitions]
+/// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -26,6 +32,9 @@ pub struct Descriptor {
     pub annotations: Option<HashMap<String, String>>,
 }
 
+/// Platform Struct used by the 'descriptor' struct above
+/// [Go definition]
+/// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go#L45)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Platform {
     pub architecture: String,
@@ -50,6 +59,10 @@ pub struct Platform {
     pub variant: Option<String>,
 }
 
+/// Image Index defined in OCI Spec v1
+///
+/// [Reference](https://github.com/opencontainers/image-spec/blob/master/image-index.md)
+/// [Go Definition](https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/index.go)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Index {
     #[serde(rename = "schemaVersion")]
@@ -61,12 +74,39 @@ pub struct Index {
     pub annotations: Option<HashMap<String, String>>,
 }
 
+impl Default for Index {
+    fn default() -> Self {
+        Index {
+            version: 2,
+            manifests: vec![],
+            annotations: None,
+        }
+    }
+}
+
+/// Image Layout structure.
+///
+/// [Reference]
+/// (https://github.com/opencontainers/image-spec/blob/master/image-layout.md#oci-layout-file)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageLayout {
     #[serde(rename = "imageLayoutVersion")]
     pub img_layout_version: String,
 }
 
+impl Default for ImageLayout {
+    fn default() -> Self {
+        ImageLayout {
+            img_layout_version: "1.0.0".to_string(),
+        }
+    }
+}
+
+/// Image Manifest
+///
+/// [Reference](https://github.com/opencontainers/image-spec/blob/master/manifest.md)
+/// [Go Definition]
+/// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/manifest.go)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Manifest {
     #[serde(rename = "schemaVersion")]
@@ -105,6 +145,10 @@ pub const MEDIA_TYPE_IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD: &str =
 
 pub const MEDIA_TYPE_IMAGE_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
 
+/// Image Config
+///
+/// [Reference](https://github.com/opencontainers/image-spec/blob/master/config.md)
+/// [Go Definition](https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/config.go)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct ImageConfig {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "User")]
@@ -176,6 +220,10 @@ pub struct History {
     pub empty_layer: Option<bool>,
 }
 
+/// Image Struct
+///
+/// [Go
+/// Definition](https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/config.go#L82)
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct Image {
     #[serde(default, skip_serializing_if = "Option::is_none")]
