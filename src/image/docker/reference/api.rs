@@ -19,9 +19,9 @@ const MAX_REFNAME_LEN: usize = 256;
 /// Allowed Input formats are as follows
 /// - 'image' -> Should resolve to docker.io/library/image:latest
 /// - 'image:latest' -> Should resolve to docker.io/library/image:latest
-/// - 'docker.io/image -> 'docker.io/library/image:latest'
-/// - 'docker.io/image:latest -> 'docker.io/library/image:latest'
-///
+/// - 'docker.io/image' -> 'docker.io/library/image:latest'
+/// - 'docker.io/image:latest' -> 'docker.io/library/image:latest'
+/// - 'foo/bar:baz' -> 'docker.io/foo/bar:baz'
 /// Note: Converting 'docker.io' to actual Domain Name is taken care of by Docker Client.
 ///
 pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
@@ -30,8 +30,13 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
         return Err(ReferenceError::EmptyName);
     }
 
+    // We need some special handling of the input string. This is thanks to the 'domain' regular
+    // expression.
+    // localhost/foo/bar is -> domain('localhost'), path('foo/bar'), but
+    // foo/bar is -> domain('docker.io'), path('foo/bar')
+    let input_ref = get_domain_name(input_ref);
     let (name, mut tag, digest): (String, String, &str);
-    let captured_ref = ANCHORED_REFERENCE_RE.captures(input_ref);
+    let captured_ref = ANCHORED_REFERENCE_RE.captures(&input_ref);
     match captured_ref {
         Some(c) => {
             if c.len() != 4 {
@@ -117,6 +122,25 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
     }
 }
 
+fn get_domain_name(input: &str) -> String {
+    let slash = input.find('/');
+    if slash.is_none() {
+        return input.to_string();
+    }
+
+    let slash = slash.unwrap();
+    let maybe_domain = &input[..slash];
+
+    if maybe_domain.find(&['.', ':'][..]).is_none() {
+        if maybe_domain == "localhost" {
+            return input.to_string();
+        }
+        return vec![DEFAULT_DOCKER_DOMAIN.to_string(), input.to_string()].join("/");
+    }
+
+    input.to_string()
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -141,6 +165,74 @@ mod tests {
                     digest: None,
                     input_ref: String::from("fedora"),
                 }),
+            },
+            ParseTC {
+                input_ref: "rustvmm/dev:v9",
+                output_ref_result: Ok(DockerReference {
+                    repo: DockerRepo {
+                        domain: String::from(DEFAULT_DOCKER_DOMAIN),
+                        path: String::from("rustvmm/dev"),
+                    },
+                    tag: String::from("v9"),
+                    digest: None,
+                    input_ref: String::from("docker.io/rustvmm/dev:v9"),
+                }),
+            },
+            ParseTC {
+                input_ref: "foo/bar/baz",
+                output_ref_result: Ok(DockerReference {
+                    repo: DockerRepo {
+                        domain: String::from(DEFAULT_DOCKER_DOMAIN),
+                        path: String::from("foo/bar/baz"),
+                    },
+                    tag: String::from("latest"),
+                    digest: None,
+                    input_ref: String::from("docker.io/foo/bar/baz"),
+                }),
+            },
+            ParseTC {
+                input_ref: "localhost/foo/bar",
+                output_ref_result: Ok(DockerReference {
+                    repo: DockerRepo {
+                        domain: String::from("localhost"),
+                        path: String::from("foo/bar"),
+                    },
+                    tag: String::from("latest"),
+                    digest: None,
+                    input_ref: String::from("localhost/foo/bar"),
+                }),
+            },
+            ParseTC {
+                input_ref: "localhost:8000/foo/bar",
+                output_ref_result: Ok(DockerReference {
+                    repo: DockerRepo {
+                        domain: String::from("localhost:8000"),
+                        path: String::from("foo/bar"),
+                    },
+                    tag: String::from("latest"),
+                    digest: None,
+                    input_ref: String::from("localhost:8000/foo/bar"),
+                }),
+            },
+            ParseTC {
+                input_ref: "a.b.c.d:8000/foo/bar",
+                output_ref_result: Ok(DockerReference {
+                    repo: DockerRepo {
+                        domain: String::from("a.b.c.d:8000"),
+                        path: String::from("foo/bar"),
+                    },
+                    tag: String::from("latest"),
+                    digest: None,
+                    input_ref: String::from("a.b.c.d:8000/foo/bar"),
+                }),
+            },
+            ParseTC {
+                input_ref: "localhost:/foo/bar",
+                output_ref_result: Err(ReferenceError::InvalidFormat),
+            },
+            ParseTC {
+                input_ref: "./foo/bar",
+                output_ref_result: Err(ReferenceError::InvalidFormat),
             },
             ParseTC {
                 input_ref: "fedora:f32",
