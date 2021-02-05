@@ -84,10 +84,10 @@ impl OCIImageLayout {
         OCIImageLayout {
             name: name.to_string(),
             tag,
-            image_path,
             index: Index::default(),
             layout: ImageLayout::default(),
-            fs_path_exists: false,
+            fs_path_exists: image_path.exists(),
+            image_path,
         }
     }
 

@@ -19,7 +19,11 @@ async fn main() -> io::Result<()> {
                 .multiple(true)
                 .help("Turns on verbose/debugging mode"),
         )
-        .subcommand(image::add_subcmd_image().subcommand(image::inspect::add_subcmd_inspect()))
+        .subcommand(
+            image::add_subcmd_image()
+                .subcommand(image::inspect::add_subcmd_inspect())
+                .subcommand(image::pull::add_subcommand_pull()),
+        )
         .get_matches();
 
     // Initialize the logger
