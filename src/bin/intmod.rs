@@ -29,9 +29,8 @@ async fn main() -> io::Result<()> {
     // Initialize the logger
     env_logger::Builder::from_env(Env::default().default_filter_or(
         match matches.occurrences_of("debug") {
-            0 => "warn",
-            1 => "info",
-            2 => "debug",
+            0 => "info",
+            1 => "debug",
             _ => "trace",
         },
     ))

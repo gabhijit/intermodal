@@ -82,6 +82,33 @@ pub fn oci_images_root() -> std::io::Result<PathBuf> {
     Ok(images_root_dir)
 }
 
+/// Create a temp dir for Image Layout
+///
+/// Whenever we are trying to 'pull' an image, it's a good idea to create the required FS
+/// structure in a separate directory and then move it to `oci_images_root`, this way we 'know'
+/// whatever is there under `oci_images_root` are indeed valid images and not something stray
+/// left over as a part of half complete pull or something else. Also, once the image is 'pull'ed
+/// successfully, we are simply going to `move` to the `oci_images_root`, so it's a good idea to
+/// keep it on the same FS as where `oci_images_root` will be.
+pub fn oci_image_layout_tempdir() -> std::io::Result<PathBuf> {
+    let mut temp_dir = match ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION) {
+        Some(p) => PathBuf::from(p.cache_dir()),
+        None => {
+            log::warn!("No Local Data Directory found, using temporary directory.");
+            std::env::temp_dir()
+        }
+    };
+
+    let _ = temp_dir.push("images");
+
+    if !temp_dir.exists() {
+        log::debug!("Temporary Layout directory does not exist. Creating.");
+        std::fs::create_dir_all(&temp_dir)?;
+    }
+
+    Ok(temp_dir)
+}
+
 #[cfg(test)]
 mod tests {
 

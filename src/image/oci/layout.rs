@@ -66,10 +66,13 @@ pub(crate) struct OCIImageLayout {
 
 impl OCIImageLayout {
     /// `OCIImageLayout` structure from the image name and optional tag.
-    pub fn new(name: &str, tag: Option<&str>) -> Self {
+    pub fn new(name: &str, tag: Option<&str>, path: Option<&PathBuf>) -> Self {
         // It's okay to 'panic' if we can't get the base path.
-        let mut image_path =
-            oci_images_root().expect("Unable to get Base Directory for OCI Images.");
+        let mut image_path = match path {
+            Some(p) => PathBuf::from(p),
+            None => oci_images_root().expect("Unable to get Base Directory for OCI Images."),
+        };
+
         if tag.is_none() {
             let _ = image_path.push(name);
         } else {
@@ -159,7 +162,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_basic_layout() {
-        let mut oci_layout = OCIImageLayout::new("foo", None);
+        let mut oci_layout = OCIImageLayout::new("foo", None, None);
 
         let r = oci_layout.create_fs_path().await;
         assert!(r.is_ok());
