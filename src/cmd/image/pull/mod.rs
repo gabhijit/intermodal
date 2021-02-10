@@ -1,11 +1,21 @@
 //! Handling of 'pull' subcommand of 'image' command
 
+use std::collections::HashMap;
 use std::io;
+use std::mem;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use tokio::io::BufReader;
 
 use crate::{
-    image::{oci::layout, transports},
+    image::{
+        oci::{
+            digest::Digest,
+            layout,
+            spec_v1::{Descriptor, Index, Manifest},
+        },
+        transports,
+    },
     utils::oci_image_layout_tempdir,
 };
 
@@ -46,10 +56,10 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     }
 
     let name = docker_ref.as_ref().unwrap().name();
-    let tag = docker_ref.as_ref().unwrap().name();
+    let tag = docker_ref.as_ref().unwrap().tag();
     let path = oci_image_layout_tempdir()?;
 
-    let img_layout = layout::OCIImageLayout::new(&name, Some(&tag), Some(&path));
+    let mut img_layout = layout::OCIImageLayout::new(&name, Some(&tag), Some(&path));
 
     if img_layout.fs_path_exists && !force {
         let errstr = format!("Local FS path for the image with name: {}, tag: {} exists. Please specify `--force` to overwrite.", name, tag);
@@ -61,17 +71,54 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
 
     let mut img = image_ref.new_image()?;
 
+    log::debug!("Getting Manifest for the Image.");
     let manifest = img.resolved_manifest().await?;
 
     let digest = Digest::from_bytes(&manifest.manifest);
 
+    let mut reader = BufReader::new(&*manifest.manifest);
+    img_layout.write_blob_file(&digest, &mut reader).await?;
+
+    let mut annotations = HashMap::new();
+    // FIXME : Not sure
+    let _ = annotations.insert("org.opencontainers.image.ref.name".to_string(), tag.clone());
+
+    // Manifest written, now create index.json
+    let manifest_descriptor = Descriptor {
+        mediatype: Some(manifest.mime_type.to_string()),
+        digest: digest,
+        size: manifest.manifest.len() as i64,
+        urls: None,
+        platform: None,
+        annotations: Some(annotations),
+    };
+
+    let index = Index {
+        version: 2,
+        manifests: vec![manifest_descriptor],
+        annotations: None,
+    };
+
+    let _ = mem::replace(&mut img_layout.index, index);
+    let _ = mem::replace(&mut img_layout.name, name);
+    let _ = img_layout.tag.replace(tag);
+
     // Download and verify config
+    let manifest_obj: Manifest = serde_json::from_slice(&manifest.manifest)?;
+
+    let config = img.config_blob().await?;
+    let mut reader = BufReader::new(&*config);
+    img_layout
+        .write_blob_file(&manifest_obj.config.digest, &mut reader)
+        .await?;
 
     // Download and verify each of the layer blobs. If the blobs are gzipped
     // unzip the blobs (Don't unzip use unzip + reader) and then verify the signature
     // as mentioned in config rootfs. If fails - fail
 
     // We now have everything - Write this to disk layout.
+    img_layout.write_index_json().await?;
+    img_layout.write_image_layout().await?;
 
     Ok(())
 }

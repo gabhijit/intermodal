@@ -21,11 +21,14 @@ use std::fmt::Display;
 use std::path::PathBuf;
 
 use tokio::{
-    fs::OpenOptions,
-    io::{AsyncWriteExt, BufWriter},
+    fs::{File, OpenOptions},
+    io::{self, AsyncRead, AsyncWriteExt, BufWriter},
 };
 
-use super::spec_v1::{ImageLayout, Index};
+use super::{
+    digest::Digest,
+    spec_v1::{ImageLayout, Index},
+};
 use crate::utils::oci_images_root;
 
 const OCI_LAYOUT_FILENAME: &str = "oci-layout";
@@ -115,7 +118,7 @@ impl OCIImageLayout {
     }
 
     /// Write Image Layout file.
-    pub async fn write_image_layout(&self) -> Result<(), OCIImageLayoutError> {
+    pub async fn write_image_layout(&self) -> Result<(), std::io::Error> {
         let mut layout_file_path = self.image_path.clone();
         layout_file_path.push(OCI_LAYOUT_FILENAME);
 
@@ -135,7 +138,7 @@ impl OCIImageLayout {
     }
 
     /// Write Image `index.json` file
-    pub async fn write_index_json(&self) -> Result<(), OCIImageLayoutError> {
+    pub async fn write_index_json(&self) -> Result<(), std::io::Error> {
         let mut index_json_path = self.image_path.clone();
         index_json_path.push(INDEX_JSON_FILENAME);
 
@@ -150,6 +153,30 @@ impl OCIImageLayout {
         let mut writer = BufWriter::new(file);
         writer.write(&contents).await?;
         writer.flush().await?;
+
+        Ok(())
+    }
+
+    /// Write a blob file
+    ///
+    /// The digest specifies the <algorithm>/<filename> part
+    pub async fn write_blob_file<T>(
+        &self,
+        digest: &Digest,
+        blob: &mut T,
+    ) -> Result<(), std::io::Error>
+    where
+        T: AsyncRead + Unpin,
+    {
+        let mut path = self.image_path.clone();
+        path.push(BLOBS_DIRNAME);
+        path.push(digest.algorithm());
+        let _ = tokio::fs::create_dir_all(&path).await?;
+
+        let _ = path.push(digest.hex_digest());
+        let mut file = File::create(&path).await?;
+
+        io::copy(blob, &mut file).await?;
 
         Ok(())
     }
