@@ -11,9 +11,8 @@ use std::boxed::Box;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use bytes::Bytes;
-use futures::stream::Stream;
 use serde::Serialize;
+use tokio::io::AsyncRead;
 
 use crate::image::{
     docker::reference::types::DockerImageReference, oci::digest::Digest,
@@ -106,7 +105,7 @@ pub trait ImageSource: std::fmt::Debug {
     async fn get_blob(
         &self,
         digest: &Digest,
-    ) -> ImageResult<Box<dyn Stream<Item = Bytes> + Unpin + Send + Sync>>;
+    ) -> ImageResult<Box<dyn AsyncRead + Unpin + Send + Sync>>;
 
     /// Get all tags for this Image source
     ///

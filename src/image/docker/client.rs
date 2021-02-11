@@ -6,9 +6,7 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::sync::RwLock;
 
-use bytes::Bytes;
 use chrono::{DateTime, Duration, Utc};
-use futures::stream::Stream;
 use futures_util::StreamExt;
 use hyper::http::{
     header::{ACCEPT, AUTHORIZATION, LOCATION},
@@ -21,8 +19,10 @@ use hyper::{
 };
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
-use tokio::{fs::File, io::AsyncWriteExt};
-use tokio_util::io::ReaderStream;
+use tokio::{
+    fs::File,
+    io::{AsyncRead, AsyncWriteExt},
+};
 
 use crate::image::{
     docker::reference::api::DEFAULT_DOCKER_DOMAIN, manifest::DEFAULT_SUPPORTED_MANIFESTS,
@@ -254,7 +254,7 @@ impl DockerClient {
         &self,
         path: &str,
         digest: &Digest,
-    ) -> Result<Box<dyn Stream<Item = Bytes> + Unpin + Send + Sync>, ClientError> {
+    ) -> Result<Box<dyn AsyncRead + Unpin + Send + Sync>, ClientError> {
         let blob_url_path = format!("{}v2/{}/blobs/{}", self.repo_url, path, digest);
         log::debug!("Getting Blob: {}", blob_url_path);
 
@@ -278,7 +278,7 @@ impl DockerClient {
         let mut blobpath = std::env::temp_dir();
         blobpath.push("blobs");
         blobpath.push(digest.algorithm());
-        std::fs::create_dir_all(&blobpath)?;
+        tokio::fs::create_dir_all(&blobpath).await?;
 
         blobpath.push(digest.hex_digest());
         let mut f = File::create(&blobpath).await?;
@@ -292,10 +292,8 @@ impl DockerClient {
 
         log::trace!("***** Blobpath: {:?}", &blobpath);
 
-        let f = File::open(&blobpath).await?;
-        let result = digest
-            .verify(&mut ReaderStream::new(f).map(|x| x.unwrap()))
-            .await;
+        let mut f = File::open(&blobpath).await?;
+        let result = digest.verify(&mut f).await;
         if !result {
             crate::log_err_return!(
                 ClientError,
@@ -314,7 +312,7 @@ impl DockerClient {
 
         let f = File::open(cache_path).await?;
 
-        Ok(Box::new(ReaderStream::new(f).map(|x| x.unwrap())))
+        Ok(Box::new(f))
     }
 
     pub(super) async fn do_get_repo_tags(&self, path: &str) -> Result<Vec<String>, ClientError> {

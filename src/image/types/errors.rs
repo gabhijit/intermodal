@@ -55,3 +55,9 @@ impl From<ImageError> for std::io::Error {
         std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("{}", e))
     }
 }
+
+impl From<std::io::Error> for ImageError {
+    fn from(e: std::io::Error) -> Self {
+        ImageError::new().with(e)
+    }
+}

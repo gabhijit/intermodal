@@ -1,8 +1,7 @@
 //! Implementation of a 'trait Image' for Docker
 
 use async_trait::async_trait;
-use bytes::BufMut;
-use futures_util::StreamExt;
+use tokio::io::AsyncReadExt;
 
 use crate::image::{
     docker::{MEDIA_TYPE_DOCKER_V2_LIST, MEDIA_TYPE_DOCKER_V2_SCHEMA2_MANIFEST},
@@ -107,9 +106,7 @@ impl Image for DockerImage {
 
             let mut blobvec = Vec::new();
 
-            while let Some(data) = cfgblob.next().await {
-                blobvec.put(data);
-            }
+            cfgblob.read_to_end(&mut blobvec).await?;
 
             self.cfgblob = Some(blobvec);
             log::trace!(

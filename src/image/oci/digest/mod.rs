@@ -13,13 +13,11 @@ use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 use std::string::String;
 
-use bytes::Buf;
-use futures::stream::Stream;
-use futures_util::StreamExt;
 use serde::de::{self, Deserializer, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};
 use sha2::{digest::DynDigest, Digest as ShaDigest, Sha256};
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Digest {
@@ -108,17 +106,17 @@ impl Digest {
         None
     }
 
-    pub async fn verify<S>(&self, stream: &mut S) -> bool
+    pub async fn verify<R>(&self, reader: &mut R) -> bool
     where
-        S: Stream + Send + Sync + Unpin,
-        S::Item: Buf,
+        R: AsyncRead + Send + Sync + Unpin,
     {
+        let mut buf: Vec<u8> = Vec::new();
         let mut digester = self.digester().unwrap();
 
         digester.reset();
-        while let Some(data) = stream.next().await {
-            digester.update(data.chunk());
-        }
+        let _ = reader.read_to_end(&mut buf).await;
+        digester.update(&buf);
+
         let result = digester.finalize();
 
         hex::encode(result) == self.hex_digest
@@ -201,7 +199,6 @@ mod tests {
 
     use super::*;
     use bytes::Bytes;
-    use futures::stream;
 
     #[test]
     fn test_serialize() {
@@ -231,9 +228,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_success() {
-        let mut s = stream::empty::<Bytes>();
+        let mut s = String::from("");
         let d = Digest::default();
 
-        assert!(d.verify(&mut s).await);
+        assert!(d.verify(&mut s.as_bytes()).await);
     }
 }
