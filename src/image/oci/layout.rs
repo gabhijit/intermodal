@@ -58,6 +58,7 @@ impl From<serde_json::Error> for OCIImageLayoutError {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct OCIImageLayout {
     pub(crate) name: String,
     pub(crate) tag: Option<String>,
@@ -100,7 +101,7 @@ impl OCIImageLayout {
     /// Create the Layout on the FS
     ///
     /// Creates the underlying 'blobs' directory as well (As it is a required one.)
-    pub async fn create_fs_path(&mut self) -> Result<(), OCIImageLayoutError> {
+    pub async fn create_fs_path(&mut self) -> Result<(), std::io::Error> {
         let mut path = self.image_path.clone();
         path.push(BLOBS_DIRNAME);
         let _ = tokio::fs::create_dir_all(&path).await?;
@@ -110,7 +111,7 @@ impl OCIImageLayout {
     }
 
     /// Delete the Layout from the FS
-    pub async fn delete_fs_path(&mut self) -> Result<(), OCIImageLayoutError> {
+    pub async fn delete_fs_path(&mut self) -> Result<(), std::io::Error> {
         let _ = tokio::fs::remove_dir_all(&self.image_path).await?;
         self.fs_path_exists = false;
 
@@ -171,9 +172,12 @@ impl OCIImageLayout {
         let mut path = self.image_path.clone();
         path.push(BLOBS_DIRNAME);
         path.push(digest.algorithm());
-        let _ = tokio::fs::create_dir_all(&path).await?;
+        if !path.exists() {
+            tokio::fs::create_dir(&path).await?;
+        }
 
         let _ = path.push(digest.hex_digest());
+
         let mut file = File::create(&path).await?;
 
         io::copy(blob, &mut file).await?;

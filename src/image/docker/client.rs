@@ -258,6 +258,32 @@ impl DockerClient {
         let blob_url_path = format!("{}v2/{}/blobs/{}", self.repo_url, path, digest);
         log::debug!("Getting Blob: {}", blob_url_path);
 
+        let mut cache_path = image_blobs_cache_root()?;
+        cache_path.push(&digest.algorithm());
+        cache_path.push(&digest.hex_digest());
+
+        if cache_path.exists() {
+            log::trace!("Blob exists locally, verifying...{:?}", &cache_path);
+
+            let mut f = File::open(&cache_path).await?;
+
+            let digest_matches = digest.verify(&mut f).await;
+
+            drop(f);
+
+            if digest_matches {
+                log::trace!("Returning cached Blob.");
+                let f = File::open(cache_path).await?;
+
+                return Ok(Box::new(f));
+            } else {
+                log::trace!("Digest does not match, deleting cached Blob.");
+                tokio::fs::remove_file(&cache_path).await?;
+            }
+        }
+
+        log::trace!("Downloading Blob from the Registry...");
+
         // This will get the bearer token and store it if required.
         self.get_bearer_token_for_path_scope(path, Some("pull"))
             .await?;
@@ -275,6 +301,8 @@ impl DockerClient {
             .perform_http_request(blob_url_path, "GET", Some(&headers), true)
             .await?;
 
+        log::trace!("Saving downloaded blob to local cache.");
+
         let mut blobpath = std::env::temp_dir();
         blobpath.push("blobs");
         blobpath.push(digest.algorithm());
@@ -290,7 +318,7 @@ impl DockerClient {
         }
         f.flush().await?;
 
-        log::trace!("***** Blobpath: {:?}", &blobpath);
+        log::trace!("Blobpath: {:?}", &blobpath);
 
         let mut f = File::open(&blobpath).await?;
         let result = digest.verify(&mut f).await;
@@ -302,13 +330,9 @@ impl DockerClient {
             );
         }
 
-        log::trace!("Result of verify: {}", result);
-
-        let mut cache_path = image_blobs_cache_root()?;
-        cache_path.push(&digest.algorithm());
-        std::fs::create_dir_all(&cache_path)?;
+        tokio::fs::create_dir_all(&cache_path).await?;
         cache_path.push(digest.hex_digest());
-        std::fs::rename(&blobpath, &cache_path)?;
+        tokio::fs::rename(&blobpath, &cache_path).await?;
 
         let f = File::open(cache_path).await?;
 

@@ -119,6 +119,11 @@ impl Digest {
 
         let result = digester.finalize();
 
+        log::trace!(
+            "Hex Digest: {}, Result: {}",
+            self.hex_digest,
+            hex::encode(&result)
+        );
         hex::encode(result) == self.hex_digest
     }
 }
@@ -198,7 +203,6 @@ impl FromStr for Digest {
 mod tests {
 
     use super::*;
-    use bytes::Bytes;
 
     #[test]
     fn test_serialize() {
@@ -228,7 +232,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_success() {
-        let mut s = String::from("");
+        let s = String::from("");
         let d = Digest::default();
 
         assert!(d.verify(&mut s.as_bytes()).await);

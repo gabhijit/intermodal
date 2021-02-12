@@ -41,7 +41,7 @@ async fn main() -> io::Result<()> {
 
     #[allow(clippy::single_match)]
     let _ = match matches.subcommand() {
-        ("image", Some(subcmd)) => {
+        ("image", Some(ref subcmd)) => {
             image::run_subcmd_image(subcmd).await?;
             Ok(())
         }

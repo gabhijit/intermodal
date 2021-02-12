@@ -28,7 +28,7 @@ pub fn init_transports() {
 
 /// Parses the given input image_name and return a Result with success value as a Boxed
 /// trait object implementing `ImageReference` trait.
-pub fn parse_image_name(image_name: &str) -> ImageResult<Box<dyn ImageReference + '_>> {
+pub fn parse_image_name<'a>(image_name: &'a str) -> ImageResult<Box<dyn ImageReference + 'a>> {
     let tokens: Vec<&str> = image_name.splitn(2, ':').collect();
 
     if tokens.len() != 2 {

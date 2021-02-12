@@ -7,16 +7,13 @@ use std::mem;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use tokio::io::BufReader;
 
-use crate::{
-    image::{
-        oci::{
-            digest::Digest,
-            layout,
-            spec_v1::{Descriptor, Index, Manifest},
-        },
-        transports,
+use crate::image::{
+    oci::{
+        digest::Digest,
+        layout::OCIImageLayout,
+        spec_v1::{Descriptor, Image, Index, Manifest},
     },
-    utils::oci_image_layout_tempdir,
+    transports,
 };
 
 /// API to subscribe to 'pull' subcommand
@@ -41,6 +38,7 @@ pub fn add_subcommand_pull() -> App<'static, 'static> {
 /// API to run 'pull' subcommand
 pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     let image_name = cmd.value_of("name").unwrap();
+
     log::debug!("Image Name: {}", image_name);
 
     let force = cmd.is_present("force");
@@ -57,31 +55,59 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
 
     let name = docker_ref.as_ref().unwrap().name();
     let tag = docker_ref.as_ref().unwrap().tag();
-    let path = oci_image_layout_tempdir()?;
 
-    let mut img_layout = layout::OCIImageLayout::new(&name, Some(&tag), Some(&path));
+    let mut img_layout = OCIImageLayout::new(&name, Some(&tag), None);
 
-    if img_layout.fs_path_exists && !force {
-        let errstr = format!("Local FS path for the image with name: {}, tag: {} exists. Please specify `--force` to overwrite.", name, tag);
-        log::error!("{}", errstr);
-        return Err(io::Error::new(io::ErrorKind::InvalidInput, errstr));
+    if img_layout.fs_path_exists {
+        if !force {
+            let errstr = format!("Local FS path for the image with name: {}, tag: {} exists. Please specify `--force` to overwrite.", name, tag);
+            log::error!("{}", errstr);
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, errstr));
+        } else {
+            log::warn!("Local Image Layout exists, deleting...");
+            img_layout.delete_fs_path().await?;
+        }
     }
 
-    log::debug!("Pulling the image: {}", image_name);
+    img_layout.create_fs_path().await?;
+
+    log::info!("Pulling the image: {}", image_name);
+
+    let result = match perform_image_pull(&mut img_layout, image_name).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("Error : {}", e);
+            img_layout.delete_fs_path().await?;
+            Err(e)
+        }
+    };
+
+    result
+}
+
+async fn perform_image_pull(
+    img_layout: &mut OCIImageLayout,
+    image_name: &str,
+) -> std::io::Result<()> {
+    let image_ref = transports::parse_image_name(image_name)?;
 
     let mut img = image_ref.new_image()?;
 
     log::debug!("Getting Manifest for the Image.");
     let manifest = img.resolved_manifest().await?;
 
+    log::debug!("Writing Manifest Blob.");
     let digest = Digest::from_bytes(&manifest.manifest);
 
     let mut reader = BufReader::new(&*manifest.manifest);
     img_layout.write_blob_file(&digest, &mut reader).await?;
 
     let mut annotations = HashMap::new();
-    // FIXME : Not sure
-    let _ = annotations.insert("org.opencontainers.image.ref.name".to_string(), tag.clone());
+    // FIXME : Not sure, Also, right now we 'know' tag is `Some`.
+    let _ = annotations.insert(
+        "org.opencontainers.image.ref.name".to_string(),
+        img_layout.tag.as_ref().unwrap().clone(),
+    );
 
     // Manifest written, now create index.json
     let manifest_descriptor = Descriptor {
@@ -100,12 +126,12 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     };
 
     let _ = mem::replace(&mut img_layout.index, index);
-    let _ = mem::replace(&mut img_layout.name, name);
-    let _ = img_layout.tag.replace(tag);
 
     // Download and verify config
+    log::debug!("Getting Image Config.");
     let manifest_obj: Manifest = serde_json::from_slice(&manifest.manifest)?;
 
+    log::debug!("Saving Image Config.");
     let config = img.config_blob().await?;
     let mut reader = BufReader::new(&*config);
     img_layout
@@ -116,9 +142,40 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     // unzip the blobs (Don't unzip use unzip + reader) and then verify the signature
     // as mentioned in config rootfs. If fails - fail
 
+    let image_obj: Image = serde_json::from_slice(&config)?;
+
+    log::debug!("Getting Image Layers!");
+    let img_source = img.source_ref();
+    for (layer, unzipped_digest) in manifest_obj.layers.iter().zip(image_obj.rootfs.diff_ids) {
+        log::debug!("Getting Image Layer: {}", layer.digest);
+        let layer_reader = img_source.get_blob(&layer.digest).await?;
+        let reader = BufReader::new(layer_reader);
+
+        let mut gzip_decoder = async_compression::tokio::bufread::GzipDecoder::new(reader);
+        let unzipped_verify = unzipped_digest.verify(&mut gzip_decoder).await;
+
+        if unzipped_verify {
+            log::debug!("Image Layer {} verified. Saving Image Layer.", layer.digest);
+            let layer_reader = img_source.get_blob(&layer.digest).await?;
+            let mut reader = BufReader::new(layer_reader);
+            img_layout
+                .write_blob_file(&unzipped_digest, &mut reader)
+                .await?;
+        } else {
+            log::error!(
+                "Checksum does not match for: {} after uncompressing.",
+                &layer.digest
+            );
+        }
+    }
+
     // We now have everything - Write this to disk layout.
+    log::debug!("Writing 'index.json'.");
     img_layout.write_index_json().await?;
+
+    log::debug!("Writing 'img-layout'.");
     img_layout.write_image_layout().await?;
 
+    log::info!("Image downloaded and saved successfully!");
     Ok(())
 }
