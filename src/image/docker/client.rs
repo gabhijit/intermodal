@@ -260,6 +260,8 @@ impl DockerClient {
 
         let mut cache_path = image_blobs_cache_root()?;
         cache_path.push(&digest.algorithm());
+        tokio::fs::create_dir_all(&cache_path).await?;
+
         cache_path.push(&digest.hex_digest());
 
         if cache_path.exists() {
@@ -330,8 +332,6 @@ impl DockerClient {
             );
         }
 
-        tokio::fs::create_dir_all(&cache_path).await?;
-        cache_path.push(digest.hex_digest());
         tokio::fs::rename(&blobpath, &cache_path).await?;
 
         let f = File::open(cache_path).await?;

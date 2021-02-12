@@ -33,6 +33,11 @@ pub fn add_subcommand_pull() -> App<'static, 'static> {
                 .short("f")
                 .long("force"),
         )
+        .arg(
+            Arg::with_name("no-clear")
+                .help("Do not clear the local directory upon error. Useful during debugging.")
+                .long("no-clear"),
+        )
 }
 
 /// API to run 'pull' subcommand
@@ -42,6 +47,7 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     log::debug!("Image Name: {}", image_name);
 
     let force = cmd.is_present("force");
+    let dont_clear = cmd.is_present("no-clear");
 
     let image_ref = transports::parse_image_name(image_name)?;
     let docker_ref = image_ref.docker_reference();
@@ -56,6 +62,7 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
     let name = docker_ref.as_ref().unwrap().name();
     let tag = docker_ref.as_ref().unwrap().tag();
 
+    log::debug!("Name: {}, Tag: {}", name, tag);
     let mut img_layout = OCIImageLayout::new(&name, Some(&tag), None);
 
     if img_layout.fs_path_exists {
@@ -77,7 +84,9 @@ pub async fn run_subcmd_pull(cmd: &ArgMatches<'_>) -> io::Result<()> {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("Error : {}", e);
-            img_layout.delete_fs_path().await?;
+            if !dont_clear {
+                img_layout.delete_fs_path().await?;
+            }
             Err(e)
         }
     };
