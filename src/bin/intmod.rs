@@ -22,7 +22,8 @@ async fn main() -> io::Result<()> {
         .subcommand(
             image::add_subcmd_image()
                 .subcommand(image::inspect::add_subcmd_inspect())
-                .subcommand(image::pull::add_subcommand_pull()),
+                .subcommand(image::pull::add_subcommand_pull())
+                .subcommand(image::cache::add_subcommand_clear_cache()),
         )
         .get_matches();
 
@@ -41,10 +42,7 @@ async fn main() -> io::Result<()> {
 
     #[allow(clippy::single_match)]
     let _ = match matches.subcommand() {
-        ("image", Some(ref subcmd)) => {
-            image::run_subcmd_image(subcmd).await?;
-            Ok(())
-        }
+        ("image", Some(ref subcmd)) => Ok(image::run_subcmd_image(subcmd).await?),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Unknown Command!",

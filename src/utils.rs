@@ -39,18 +39,6 @@ pub fn image_blobs_cache_root() -> std::io::Result<PathBuf> {
     Ok(blobs_cache_dir)
 }
 
-/// Cleans up the image 'blobs' cache root path directory and everything underneath.
-pub fn image_blobs_cache_clear() -> std::io::Result<()> {
-    let blobs_cache_dir = image_blobs_cache_root()?;
-    match std::fs::remove_dir_all(&blobs_cache_dir) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            log::warn!("Error '{}' in trying to delete blobs cache.'", e);
-            Err(e)
-        }
-    }
-}
-
 /// Get's the Local Path for OCI Images.
 ///
 /// Local images are stored in a directory on the FS. The images are stored using a Layout

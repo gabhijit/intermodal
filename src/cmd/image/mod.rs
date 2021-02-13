@@ -2,6 +2,7 @@ use std::io;
 
 use clap::{App, AppSettings, ArgMatches, SubCommand};
 
+pub mod cache;
 pub mod inspect;
 pub mod pull;
 
@@ -14,10 +15,12 @@ pub fn add_subcmd_image() -> App<'static, 'static> {
 
 /// Run 'image' subcommand asynchronously
 pub async fn run_subcmd_image(subcmd: &ArgMatches<'_>) -> io::Result<()> {
-    #[allow(clippy::single_match)]
     match subcmd.subcommand() {
         ("inspect", Some(inspect_subcmd)) => Ok(inspect::run_subcmd_inspect(inspect_subcmd).await?),
         ("pull", Some(pull_subcmd)) => Ok(pull::run_subcmd_pull(pull_subcmd).await?),
+        ("clear-blob-cache", Some(cache_subcmd)) => {
+            Ok(cache::run_subcmd_clear_cache(cache_subcmd)?)
+        }
         _ => Err(io::Error::new(io::ErrorKind::Other, "Unknown Subcommand")),
     }
 }
