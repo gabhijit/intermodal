@@ -58,7 +58,7 @@ impl From<serde_json::Error> for OCIImageLayoutError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct OCIImageLayout {
     pub(crate) name: String,
     pub(crate) tag: Option<String>,

@@ -81,7 +81,7 @@ impl Image for DockerImage {
         self.source.reference()
     }
 
-    fn source_ref(&self) -> &dyn ImageSource {
+    fn source_ref(&self) -> &(dyn ImageSource + Send + Sync) {
         self.source.as_ref()
     }
 

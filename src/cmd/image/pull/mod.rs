@@ -11,9 +11,10 @@ use crate::image::{
     oci::{
         digest::Digest,
         layout::OCIImageLayout,
-        spec_v1::{Descriptor, Image, Index, Manifest},
+        spec_v1::{Descriptor, Image as OCIImage, Index, Manifest},
     },
     transports,
+    types::ImageSource,
 };
 
 /// API to subscribe to 'pull' subcommand
@@ -151,31 +152,24 @@ async fn perform_image_pull(
     // unzip the blobs (Don't unzip use unzip + reader) and then verify the signature
     // as mentioned in config rootfs. If fails - fail
 
-    let image_obj: Image = serde_json::from_slice(&config)?;
+    let image_obj: OCIImage = serde_json::from_slice(&config)?;
 
     log::debug!("Getting Image Layers!");
-    let img_source = img.source_ref();
+    let mut layer_handles = vec![];
     for (layer, unzipped_digest) in manifest_obj.layers.iter().zip(image_obj.rootfs.diff_ids) {
-        log::debug!("Getting Image Layer: {}", layer.digest);
-        let layer_reader = img_source.get_blob(&layer.digest).await?;
-        let reader = BufReader::new(layer_reader);
+        let layer_digest = layer.digest.clone();
+        let img_layout = img_layout.clone();
+        let img_source = image_ref.new_image_source()?;
+        let handle = tokio::spawn(async move {
+            do_download_image_layer(layer_digest, unzipped_digest, img_layout, img_source).await?;
 
-        let mut gzip_decoder = async_compression::tokio::bufread::GzipDecoder::new(reader);
-        let unzipped_verify = unzipped_digest.verify(&mut gzip_decoder).await;
+            Ok::<(), std::io::Error>(())
+        });
+        layer_handles.push(handle);
+    }
 
-        if unzipped_verify {
-            log::debug!("Image Layer {} verified. Saving Image Layer.", layer.digest);
-            let layer_reader = img_source.get_blob(&layer.digest).await?;
-            let mut reader = BufReader::new(layer_reader);
-            img_layout
-                .write_blob_file(&unzipped_digest, &mut reader)
-                .await?;
-        } else {
-            log::error!(
-                "Checksum does not match for: {} after uncompressing.",
-                &layer.digest
-            );
-        }
+    for h in layer_handles {
+        let _ = h.await?;
     }
 
     // We now have everything - Write this to disk layout.
@@ -186,5 +180,36 @@ async fn perform_image_pull(
     img_layout.write_image_layout().await?;
 
     log::info!("Image downloaded and saved successfully!");
+    Ok(())
+}
+
+async fn do_download_image_layer<'a>(
+    layer_digest: Digest,
+    unzipped_digest: Digest,
+    img_layout: OCIImageLayout,
+    //img: Box<dyn Image + Send + Sync>,
+    img_source: Box<dyn ImageSource + Send + Sync>,
+) -> io::Result<()> {
+    log::info!("Getting Image Layer: {}", layer_digest);
+
+    // let img_source = img.source_ref();
+    let layer_reader = img_source.get_blob(&layer_digest).await?;
+    let reader = BufReader::new(layer_reader);
+    let mut gzip_decoder = async_compression::tokio::bufread::GzipDecoder::new(reader);
+    let unzipped_verify = unzipped_digest.verify(&mut gzip_decoder).await;
+
+    if unzipped_verify {
+        log::debug!("Image Layer {} verified. Saving Image Layer.", layer_digest);
+        let layer_reader = img_source.get_blob(&layer_digest).await?;
+        let mut reader = BufReader::new(layer_reader);
+        &img_layout
+            .write_blob_file(&unzipped_digest, &mut reader)
+            .await?;
+    } else {
+        log::error!(
+            "Checksum does not match for: {} after uncompressing.",
+            &layer_digest
+        );
+    }
     Ok(())
 }

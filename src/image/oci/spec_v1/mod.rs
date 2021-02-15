@@ -13,7 +13,7 @@ pub struct Empty {}
 /// [description] (https://github.com/opencontainers/image-spec/blob/master/descriptor.md)
 /// [Go definitions]
 /// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go)
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mediatype: Option<String>,
@@ -35,7 +35,7 @@ pub struct Descriptor {
 /// Platform Struct used by the 'descriptor' struct above
 /// [Go definition]
 /// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go#L45)
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct Platform {
     pub architecture: String,
 
@@ -63,7 +63,7 @@ pub struct Platform {
 ///
 /// [Reference](https://github.com/opencontainers/image-spec/blob/master/image-index.md)
 /// [Go Definition](https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/index.go)
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct Index {
     #[serde(rename = "schemaVersion")]
     pub version: u8,
@@ -88,7 +88,7 @@ impl Default for Index {
 ///
 /// [Reference]
 /// (https://github.com/opencontainers/image-spec/blob/master/image-layout.md#oci-layout-file)
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct ImageLayout {
     #[serde(rename = "imageLayoutVersion")]
     pub img_layout_version: String,
@@ -107,7 +107,7 @@ impl Default for ImageLayout {
 /// [Reference](https://github.com/opencontainers/image-spec/blob/master/manifest.md)
 /// [Go Definition]
 /// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/manifest.go)
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct Manifest {
     #[serde(rename = "schemaVersion")]
     pub version: u8,

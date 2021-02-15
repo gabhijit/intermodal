@@ -84,7 +84,7 @@ impl ImageReference for DockerReference {
     }
 
     /// Returns an object implementing trait 'Image' in our case 'DockerImage'
-    fn new_image(&self) -> ImageResult<Box<dyn Image>> {
+    fn new_image(&self) -> ImageResult<Box<dyn Image + Send + Sync>> {
         let source = self.new_image_source()?;
 
         // FIXME: Get a proper manifest.

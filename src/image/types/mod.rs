@@ -62,7 +62,7 @@ pub trait ImageReference: std::fmt::Debug {
     fn new_image_source(&self) -> ImageResult<Box<dyn ImageSource + Send + Sync>>;
 
     /// Returns the Image
-    fn new_image(&self) -> ImageResult<Box<dyn Image>>;
+    fn new_image(&self) -> ImageResult<Box<dyn Image + Send + Sync>>;
 
     /// Returns the DockerReference corresponding to this ImageReference
     fn docker_reference(&self) -> Option<Box<dyn DockerImageReference>> {
@@ -121,7 +121,7 @@ pub trait ImageSource: std::fmt::Debug {
 #[async_trait]
 pub trait Image: std::fmt::Debug {
     /// Underlying 'image source'
-    fn source_ref(&self) -> &dyn ImageSource;
+    fn source_ref(&self) -> &(dyn ImageSource + Send + Sync);
 
     /// Reference of the 'image source'.
     fn reference(&self) -> Box<dyn ImageReference>;
