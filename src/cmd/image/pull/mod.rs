@@ -201,12 +201,16 @@ async fn do_download_image_layer<'a>(
 
     // let img_source = img.source_ref();
     let layer_reader = img_source.get_blob(&layer_digest).await?;
+
+    log::debug!("Layer downloaded, Verifying the RootFS Layer.");
     let reader = BufReader::new(layer_reader);
+    // FIXME: Use the proper decoder based on Media type
     let mut gzip_decoder = async_compression::tokio::bufread::GzipDecoder::new(reader);
     let unzipped_verify = unzipped_digest.verify(&mut gzip_decoder).await;
 
     if unzipped_verify {
         log::debug!("Image Layer {} verified. Saving Image Layer.", layer_digest);
+        // FIXME: This unnecessarily verifies the image that we just verified above.
         let layer_reader = img_source.get_blob(&layer_digest).await?;
         let mut reader = BufReader::new(layer_reader);
         &img_layout

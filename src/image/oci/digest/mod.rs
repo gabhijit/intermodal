@@ -110,12 +110,17 @@ impl Digest {
     where
         R: AsyncRead + Send + Sync + Unpin,
     {
-        let mut buf: Vec<u8> = Vec::new();
+        let mut buf: Vec<u8> = vec![0; 16384];
         let mut digester = self.digester().unwrap();
 
         digester.reset();
-        let _ = reader.read_to_end(&mut buf).await;
-        digester.update(&buf);
+        loop {
+            let n = reader.read(&mut buf[..]).await.unwrap();
+            if n == 0 {
+                break;
+            }
+            digester.update(&buf[..n]);
+        }
 
         let result = digester.finalize();
 
