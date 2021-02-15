@@ -3,9 +3,10 @@
 use std::collections::HashMap;
 use std::io;
 use std::mem;
+use std::sync::Arc;
 
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-use tokio::io::BufReader;
+use tokio::{io::BufReader, sync::Semaphore};
 
 use crate::image::{
     oci::{
@@ -155,14 +156,20 @@ async fn perform_image_pull(
     let image_obj: OCIImage = serde_json::from_slice(&config)?;
 
     log::debug!("Getting Image Layers!");
+    let max_parallel_dloads = 3;
     let mut layer_handles = vec![];
+    let semaphore = Arc::new(Semaphore::new(max_parallel_dloads));
+
     for (layer, unzipped_digest) in manifest_obj.layers.iter().zip(image_obj.rootfs.diff_ids) {
         let layer_digest = layer.digest.clone();
         let img_layout = img_layout.clone();
         let img_source = image_ref.new_image_source()?;
+
+        let permit = semaphore.clone().acquire_owned().await;
+
         let handle = tokio::spawn(async move {
             do_download_image_layer(layer_digest, unzipped_digest, img_layout, img_source).await?;
-
+            drop(permit);
             Ok::<(), std::io::Error>(())
         });
         layer_handles.push(handle);
@@ -203,7 +210,7 @@ async fn do_download_image_layer<'a>(
         let layer_reader = img_source.get_blob(&layer_digest).await?;
         let mut reader = BufReader::new(layer_reader);
         &img_layout
-            .write_blob_file(&unzipped_digest, &mut reader)
+            .write_blob_file(&layer_digest, &mut reader)
             .await?;
     } else {
         log::error!(
