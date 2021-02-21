@@ -4,6 +4,7 @@ use clap::{App, AppSettings, ArgMatches, SubCommand};
 
 pub mod cache;
 pub mod inspect;
+pub mod mount;
 pub mod pull;
 
 /// Command line Parsing for 'image' subcommand
