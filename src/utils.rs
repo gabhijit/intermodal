@@ -70,6 +70,33 @@ pub fn oci_images_root() -> std::io::Result<PathBuf> {
     Ok(images_root_dir)
 }
 
+/// Get's the 'storage' root path for the given filesystem.
+///
+/// See `storage/mod.rs` for the detail.
+pub fn storage_root_for_fs(fs: &str) -> std::io::Result<PathBuf> {
+    let mut storage_root_dir = match ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION) {
+        Some(p) => p.data_local_dir().to_path_buf(),
+        None => {
+            log::warn!("No Local Data Directory found, using temporary directory.");
+            std::env::temp_dir()
+        }
+    };
+
+    let _ = storage_root_dir.push("storage");
+
+    let _ = storage_root_dir.push(fs);
+
+    if !storage_root_dir.exists() {
+        log::debug!(
+            "{}",
+            format!("Creating Storage Root directory for : {}", fs)
+        );
+        std::fs::create_dir_all(&storage_root_dir)?;
+    }
+
+    Ok(storage_root_dir)
+}
+
 #[cfg(test)]
 mod tests {
 
