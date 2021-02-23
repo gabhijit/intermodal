@@ -11,26 +11,28 @@ license-file = "LICENSE"
 
 [dependencies]
 
+async-compression = { version = "0.3.7", features = ["tokio", "gzip"] }
+async-trait = "0.1"
 hex = "0.4"
-sha2 = "0.9"
-clap = "*"
 bytes = { version = "1"}
+chrono = { version = "0.4", features = ["serde"] }
+clap = "*"
+directories = "3.0"
+env_logger = "0.8"
+flate2 = { version = "1.0" }
 futures = { version = "0.3"}
 futures-util = { version = "0.3"}
-tokio = { version = "1", features = ["macros", "rt", "fs"] }
-tokio-util = { version = "0.6", features = ["io"]}
+lazy_static = "1.1"
+log = "0.4"
 hyper = { version = "0.14.2", features = ["client", "http1", "stream"] }
 hyper-tls = { version = "0.5" }
-chrono = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0.117", features = ["derive"] }
-async-compression = { version = "0.3.7", features = ["tokio", "gzip"] }
-serde_json = "*"
 regex = "1"
-lazy_static = "1.1"
-env_logger = "0.8"
-log = "0.4"
-async-trait = "0.1"
-directories = "3.0"
+serde = { version = "1.0.117", features = ["derive"] }
+serde_json = "*"
+sha2 = "0.9"
+tar = { version = "0.4.33" }
+tokio = { version = "1", features = ["macros", "rt", "fs"] }
+tokio-util = { version = "0.6", features = ["io"]}
 
 [dev-dependencies]
 wiremock = "*"
