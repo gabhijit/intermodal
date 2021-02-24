@@ -58,20 +58,47 @@ pub fn apply_layer<P: AsRef<Path>>(
 mod tests {
 
     use super::*;
+    use crate::image::api::pull_container_image;
     use crate::image::oci::digest::Digest;
+    use crate::image::oci::layout::OCIImageLayout;
 
-    // FIXME: Hard coded
-    #[test]
-    fn test_apply_layer() {
+    // Pulls a busybox image for testing. Note: the passed 'Path' should be a `tempdir` Path, which
+    // can be cleaned automatically when the test case exits.
+    async fn pull_busybox_image_for_test(
+        to_path: &std::path::Path,
+    ) -> std::io::Result<OCIImageLayout> {
+        pull_container_image("docker://busybox:1.32", to_path, true, true).await
+    }
+
+    #[tokio::test]
+    async fn test_apply_layer() {
         assert!(true);
         let digest = Digest::new_from_str(
             "sha256:5c4213be9af904dd74649d250f22023f532b2f9179ffcb15260b5eaa10d7a3b4",
         )
         .unwrap();
-        let blobpath =
-            "/home/gabhijit/.local/share/intmod/images/docker.io/library/busybox/1.32/blobs/sha256/5c4213be9af904dd74649d250f22023f532b2f9179ffcb15260b5eaa10d7a3b4";
 
-        let r = apply_layer(&digest, blobpath, Some(&PathBuf::from("/tmp")));
+        let prefix = "layer_test";
+        let pull_tempdir = tempdir::TempDir::new(prefix).unwrap();
+        let r = pull_busybox_image_for_test(pull_tempdir.path()).await;
+        assert!(r.is_ok());
+
+        let image_layout = r.unwrap();
+
+        let mut blobpath = image_layout.image_fs_path();
+        blobpath.push(format!(
+            "{}/{}/{}",
+            "blobs",
+            digest.algorithm(),
+            digest.hex_digest()
+        ));
+
+        let layout_tempdir = tempdir::TempDir::new(prefix).unwrap();
+        let r = apply_layer(
+            &digest,
+            blobpath,
+            Some(&PathBuf::from(layout_tempdir.path())),
+        );
         assert!(r.is_ok());
     }
 }

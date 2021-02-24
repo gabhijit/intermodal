@@ -18,7 +18,7 @@ pub fn add_subcommand_mount() -> App<'static, 'static> {
 /// API to run subcommand 'mount'
 ///
 /// Note: We'll always 'mount' the layers such that they can be 'mounted' by 'overlayFS'
-pub async fn run_subcommand_mount(subcmd: &ArgMatches<'_>) -> std::io::Result<()> {
+pub async fn run_subcommand_mount(_subcmd: &ArgMatches<'_>) -> std::io::Result<()> {
     // Find Locally 'pulled' Image. (For now let's just work with docker://<ref> paths.
     // For each of the Layers, create a directory inside some path and then
     // 1. Untar layers one by one there (creating appropriate directories as required.)

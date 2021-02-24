@@ -36,3 +36,4 @@ tokio-util = { version = "0.6", features = ["io"]}
 
 [dev-dependencies]
 wiremock = "*"
+tempdir = "*"
