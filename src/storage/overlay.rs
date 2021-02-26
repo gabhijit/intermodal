@@ -26,7 +26,7 @@ pub fn layers_base_path() -> std::io::Result<PathBuf> {
 ///
 /// For the 'overlay' filesystem, this involves, extracting the tar files and handling the
 /// whiteouts.
-pub fn apply_layer<P: AsRef<Path>>(
+pub fn apply_layer<P: AsRef<Path> + std::fmt::Debug>(
     digest: &Digest,
     layer: P,
     base_path: Option<&PathBuf>,
@@ -39,6 +39,8 @@ pub fn apply_layer<P: AsRef<Path>>(
         layer_path = PathBuf::from(base_path.unwrap())
     }
 
+    log::debug!("Applying Layer: `{:?}`", layer);
+
     let _ = layer_path.push(format!("{}/{}", digest.algorithm(), digest.hex_digest()));
 
     // Create the directory identified by the checksum
@@ -46,7 +48,10 @@ pub fn apply_layer<P: AsRef<Path>>(
         std::fs::create_dir_all(&layer_path)?;
     }
 
+    log::trace!("Creating The files and directories for the layer!");
+
     // create the 'diff' directory - This is where 'rootFS' will be mounted
+    log::trace!("Creating 'diff' directory to extract the layer.");
     let mut diff_path = PathBuf::from(&layer_path);
     let _ = diff_path.push("diff");
     std::fs::create_dir_all(&diff_path)?;
@@ -55,6 +60,7 @@ pub fn apply_layer<P: AsRef<Path>>(
     //
     // Also creates 'work' dir required by 'overalyfs'
     if !lower.is_empty() {
+        log::trace!("Generating 'lower' file and 'work' directory.");
         let mut lower_path = PathBuf::from(&layer_path);
         let _ = lower_path.push("lower");
         let mut f = std::fs::File::create(lower_path)?;
@@ -66,6 +72,7 @@ pub fn apply_layer<P: AsRef<Path>>(
         std::fs::create_dir(workdir_path)?;
     }
 
+    log::trace!("Applying entries in the Layer Tar!");
     let reader = BufReader::new(std::fs::File::open(layer)?);
     let gz_reader = flate2::bufread::GzDecoder::new(reader);
     let mut tar_reader = tar::Archive::new(gz_reader);
@@ -90,7 +97,6 @@ pub fn apply_layer<P: AsRef<Path>>(
             // Not a white-out simply write the entry to the path.
             let _ = entry.unpack_in(&diff_path)?;
         }
-        println!("{:#?}", entry.header());
     }
 
     Ok(())
@@ -107,7 +113,10 @@ where
 {
     // An Opaque whiteout entry.
     let entry_path = entry.path().unwrap();
+    log::trace!("Handling whiteout Entry: {:?}", entry_path);
+
     if entry_path.ends_with(WHITEOUT_OPAQUE) {
+        log::trace!("Entry is an opaque entry, applying 'xattr'.");
         let mut components = entry_path.components();
         if let Some(_) = components.next_back() {
             // Last is consumed. use whatever remains as a path.
@@ -120,6 +129,7 @@ where
             )?;
         }
     } else {
+        log::trace!("Entry is a simple whiteout entry. Creating a char device for the entry!");
         let mknod_path_str = entry_path.to_str().unwrap().replace(WHITEOUT_PREFIX, "");
         let mknod_path = Path::new(&mknod_path_str);
         let joined_path = base.as_ref().join(mknod_path);
@@ -132,10 +142,6 @@ where
     }
     Ok(())
 }
-
-// TODO: Implement an API - cleanup layer
-// Given a layer digest, cleans up the given layer. deletes everything under the directory for the
-// layer.
 
 #[cfg(test)]
 mod tests {
@@ -155,7 +161,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_apply_layer() {
-        assert!(true);
         let digest = Digest::new_from_str(
             "sha256:5c4213be9af904dd74649d250f22023f532b2f9179ffcb15260b5eaa10d7a3b4",
         )

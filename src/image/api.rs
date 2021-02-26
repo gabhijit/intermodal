@@ -48,9 +48,9 @@ pub async fn pull_container_image<P>(
     clean_on_err: bool,
 ) -> std::io::Result<OCIImageLayout>
 where
-    P: AsRef<Path>,
+    P: AsRef<Path> + std::fmt::Debug,
 {
-    log::debug!("Input Reference: {}", reference);
+    log::info!("Pulling the image: {}", reference);
 
     let image_ref = transports::parse_image_name(reference)?;
     let docker_ref = image_ref.docker_reference();
@@ -65,7 +65,12 @@ where
     let name = docker_ref.as_ref().unwrap().name();
     let tag = docker_ref.as_ref().unwrap().tag();
 
-    log::debug!("Name: {}, Tag: {}", name, tag);
+    log::debug!(
+        "Creating OCI Image Layout for Image: {}, {}, {:?}",
+        &name,
+        &tag,
+        to_path
+    );
     let mut img_layout = OCIImageLayout::new(&name, Some(&tag), to_path);
 
     if img_layout.image_fs_path().exists() {
@@ -74,15 +79,14 @@ where
             log::error!("{}", errstr);
             return Err(io::Error::new(io::ErrorKind::InvalidInput, errstr));
         } else {
-            log::warn!("Local Image Layout exists, deleting...");
+            log::warn!("Local Image Layout exists, User requested 'force'. Deleting...");
             img_layout.delete_fs_path().await?;
         }
     }
 
     img_layout.create_fs_path().await?;
 
-    log::info!("Pulling the image: {}", reference);
-
+    log::debug!("Performing Image Pull.");
     let result = match perform_image_pull(&mut img_layout, reference).await {
         Ok(_) => Ok(img_layout),
         Err(e) => {
@@ -105,10 +109,10 @@ async fn perform_image_pull(
 
     let mut img = image_ref.new_image()?;
 
-    log::debug!("Getting Manifest for the Image.");
+    log::trace!("Getting Manifest for the Image.");
     let manifest = img.resolved_manifest().await?;
 
-    log::debug!("Writing Manifest Blob.");
+    log::trace!("Writing Manifest Blob.");
     let digest = Digest::from_bytes(&manifest.manifest);
 
     let mut reader = BufReader::new(&*manifest.manifest);
@@ -131,6 +135,7 @@ async fn perform_image_pull(
         annotations: Some(annotations),
     };
 
+    log::trace!("Updating Image Layout 'Index', with new manifest.");
     img_layout.update_index(Index {
         version: 2,
         manifests: vec![manifest_descriptor],
@@ -138,10 +143,10 @@ async fn perform_image_pull(
     });
 
     // Download and verify config
-    log::debug!("Getting Image Config.");
+    log::trace!("Getting Image Config.");
     let manifest_obj: Manifest = serde_json::from_slice(&manifest.manifest)?;
 
-    log::debug!("Saving Image Config.");
+    log::trace!("Saving Image Config.");
     let config = img.config_blob().await?;
     let mut reader = BufReader::new(&*config);
     img_layout
@@ -193,7 +198,6 @@ async fn do_download_image_layer<'a>(
     layer_digest: Digest,
     unzipped_digest: Digest,
     img_layout: OCIImageLayout,
-    //img: Box<dyn Image + Send + Sync>,
     img_source: Box<dyn ImageSource + Send + Sync>,
 ) -> io::Result<()> {
     log::info!("Getting Image Layer: {}", layer_digest);
@@ -201,14 +205,14 @@ async fn do_download_image_layer<'a>(
     // let img_source = img.source_ref();
     let layer_reader = img_source.get_blob(&layer_digest).await?;
 
-    log::debug!("Layer downloaded, Verifying the RootFS Layer.");
+    log::trace!("Layer downloaded, Verifying the RootFS Layer.");
     let reader = BufReader::new(layer_reader);
     // FIXME: Use the proper decoder based on Media type
     let mut gzip_decoder = async_compression::tokio::bufread::GzipDecoder::new(reader);
     let unzipped_verify = unzipped_digest.verify(&mut gzip_decoder).await;
 
     if unzipped_verify {
-        log::debug!("Image Layer {} verified. Saving Image Layer.", layer_digest);
+        log::trace!("Image Layer {} verified. Saving Image Layer.", layer_digest);
         // FIXME: This unnecessarily verifies the image that we just verified above.
         let layer_reader = img_source.get_blob(&layer_digest).await?;
         let mut reader = BufReader::new(layer_reader);
