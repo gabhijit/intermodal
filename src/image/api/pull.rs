@@ -1,9 +1,4 @@
-//! Container Image handling public APIs
-//!
-//! This module contains public APIs for handling different image functionality.
-//!
-//!
-//!
+//! Image 'pull' related APIs and internal functions
 
 use std::collections::HashMap;
 use std::io;
