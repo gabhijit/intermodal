@@ -11,7 +11,7 @@ The goal is to implement functionality that can be used to handle Containers in 
 3. CRI Server, so this can run on a kubelet.
 4. Tools/Utils that can be used directly.
 
-The Goal is to make something that tools like  [skopeo](), [podman]() and [runc]() achieve but implemented in Rust.
+The Goal is to make something that tools like  [skopeo](https://github.com/containers/skopeo), [podman](https://github.com/containers/podman) and [runc](https://github.com/opencontainers/runc) achieve but implemented in Rust.
 
 # Status
 
@@ -38,7 +38,7 @@ $ ./target/debug/intmod image inspect docker://fedora --config
 
 $ cargo build
 
-# Run `image inspect` command
+# Run `image pull` command
 # Add -d for debug -dd for trace log levels
 $ ./target/debug/intmod image pull docker://fedora
 ```
@@ -52,5 +52,5 @@ The broad plan to implement the following -
 1. Image Inspect and Image Pull (So that a `rootfs` can be created.)
 2. Basic Runtime support that will utilize above `rootfs` to bring up a container.
 3. Add features like `cgroup`, `seccomp` etc.
-4. Runtime with support for VMs (Using [rust-vmm]()).
+4. Runtime with support for VMs (Using [rust-vmm](https://github.com/rust-vmm/)).
 5. Front-end CRI server and other machinery needed (like `CNI` support etc.) to make it run with `crictl`.
