@@ -161,8 +161,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_apply_layer() {
+        // FIXME: This digest is hard-coded need to do something about it.
+        // from the `image_layout` below
         let digest = Digest::new_from_str(
-            "sha256:5c4213be9af904dd74649d250f22023f532b2f9179ffcb15260b5eaa10d7a3b4",
+            "sha256:8b3d7e226fab303defb72e117d7668955a0999b03177a98d2762f8d62df2b559",
         )
         .unwrap();
 
@@ -188,6 +190,6 @@ mod tests {
             Some(&PathBuf::from(layout_tempdir.path())),
             "",
         );
-        assert!(r.is_ok());
+        assert!(r.is_ok(), "{:#?}", r.err());
     }
 }
