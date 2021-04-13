@@ -148,26 +148,22 @@ mod tests {
 
     use super::*;
     use crate::image::api::pull_container_image;
-    use crate::image::oci::digest::Digest;
     use crate::image::oci::layout::OCIImageLayout;
+    use crate::image::oci::spec_v1::Manifest;
+    use std::fs::File;
+    use std::io::BufReader;
 
     // Pulls a busybox image for testing. Note: the passed 'Path' should be a `tempdir` Path, which
     // can be cleaned automatically when the test case exits.
     async fn pull_busybox_image_for_test(
         to_path: &std::path::Path,
     ) -> std::io::Result<OCIImageLayout> {
-        pull_container_image("docker://busybox:1.32", to_path, true, true).await
+        pull_container_image("docker://busybox:1.32", to_path, false, true).await
     }
 
     #[tokio::test]
     async fn test_apply_layer() {
-        // FIXME: This digest is hard-coded need to do something about it.
-        // from the `image_layout` below
-        let digest = Digest::new_from_str(
-            "sha256:8b3d7e226fab303defb72e117d7668955a0999b03177a98d2762f8d62df2b559",
-        )
-        .unwrap();
-
+        // Pull the image
         let prefix = "layer_test";
         let pull_tempdir = tempdir::TempDir::new(prefix).unwrap();
         let r = pull_busybox_image_for_test(pull_tempdir.path()).await;
@@ -175,18 +171,40 @@ mod tests {
 
         let image_layout = r.unwrap();
 
-        let mut blobpath = image_layout.image_fs_path();
-        blobpath.push(format!(
+        let index = image_layout.index();
+        let manifest_digest = &index.manifests[0].digest;
+
+        // Get the manifest
+        let mut manifest_path = image_layout.image_fs_path();
+        manifest_path.push(format!(
             "{}/{}/{}",
             "blobs",
-            digest.algorithm(),
-            digest.hex_digest()
+            manifest_digest.algorithm(),
+            manifest_digest.hex_digest()
+        ));
+
+        let manifest_path = File::open(manifest_path);
+        assert!(manifest_path.is_ok());
+        let manifest_reader = BufReader::new(manifest_path.unwrap());
+
+        let manifest = serde_json::from_reader::<_, Manifest>(manifest_reader);
+        assert!(manifest.is_ok());
+        let manifest = manifest.unwrap();
+
+        // Get First layer from the manifest (at-least one layer will be present.)
+        let layer0_digest = &manifest.layers[0].digest;
+        let mut layer0_blobpath = image_layout.image_fs_path();
+        layer0_blobpath.push(format!(
+            "{}/{}/{}",
+            "blobs",
+            layer0_digest.algorithm(),
+            layer0_digest.hex_digest()
         ));
 
         let layout_tempdir = tempdir::TempDir::new(prefix).unwrap();
         let r = apply_layer(
-            &digest,
-            blobpath,
+            &layer0_digest,
+            layer0_blobpath,
             Some(&PathBuf::from(layout_tempdir.path())),
             "",
         );

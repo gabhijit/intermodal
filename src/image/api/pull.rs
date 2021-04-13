@@ -31,7 +31,7 @@ use tokio::{io::BufReader, sync::Semaphore};
 /// let temp_path = tempdir::TempDir::new("doctest.example").unwrap();
 ///
 /// # intermodal::image::transports::init_transports();
-/// let result = pull_container_image("docker://busybox:latest", temp_path.path(), true, true).await;
+/// let result = pull_container_image("docker://busybox:latest", temp_path.path(), false, true).await;
 ///
 /// assert!(result.is_ok())
 /// # }

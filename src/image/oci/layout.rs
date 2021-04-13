@@ -189,6 +189,11 @@ impl OCIImageLayout {
         self.image_path.clone()
     }
 
+    #[inline(always)]
+    pub fn index(&self) -> Index {
+        self.index.clone()
+    }
+
     /// Updates the index consuming the passed index.
     ///
     /// Note: The updated index is not written to the disk, caller should explicitly write it to
