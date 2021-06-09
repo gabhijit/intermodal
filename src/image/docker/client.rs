@@ -171,13 +171,17 @@ impl DockerClient {
             Ok(response)
         } else {
             if !handle_redirects {
-                crate::log_err_return!(ClientError, "Error in Downloading Blob: {}", status);
+                return crate::log_err_return!(
+                    ClientError,
+                    "Error in Downloading Blob: {}",
+                    status
+                );
             }
             if status.is_redirection() {
                 if !response.headers().contains_key(LOCATION) {
                     let loc = LOCATION;
 
-                    crate::log_err_return!(
+                    return crate::log_err_return!(
                         ClientError,
                         "Redirect received but no {:?} Header.",
                         loc
@@ -203,7 +207,7 @@ impl DockerClient {
                 }
             }
 
-            crate::log_err_return!(ClientError, "Error in Downloading: {}", status);
+            return crate::log_err_return!(ClientError, "Error in Downloading: {}", status);
         }
     }
 
@@ -325,7 +329,7 @@ impl DockerClient {
         let mut f = File::open(&blobpath).await?;
         let result = digest.verify(&mut f).await;
         if !result {
-            crate::log_err_return!(
+            return crate::log_err_return!(
                 ClientError,
                 "Digest Verification failed for Digest: {}",
                 digest
@@ -443,7 +447,7 @@ impl DockerClient {
                 log::debug!("Bearer Token for Client Saved!");
                 return Ok(());
             } else {
-                crate::log_err_return!(
+                return crate::log_err_return!(
                     ClientError,
                     "No 'WWW-Authenticate' Header found with {}",
                     response.status()
@@ -454,7 +458,11 @@ impl DockerClient {
             log::warn!("No Bearer Token for Client, but Ping response Success!. Bearer Token Not Obtained (and saved)!");
             return Ok(());
         } else {
-            crate::log_err_return!(ClientError, "Error Getting Token: {}", response.status());
+            return crate::log_err_return!(
+                ClientError,
+                "Error Getting Token: {}",
+                response.status()
+            );
         }
     }
 

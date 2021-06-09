@@ -23,21 +23,13 @@ pub mod image;
 pub mod storage;
 pub mod utils;
 
-// FIXME: Not sure how to use below, but better to get started.
-#[macro_export]
-macro_rules! log_err_obj {
-    ($et:expr, $($arg:tt)*) => {
-        let errstr = format!($($arg)*);
-        log::error!("{}", errstr);
-        $et(errst)
-    }
-}
-
 #[macro_export]
 macro_rules! log_err_return {
-    ($et:expr, $($arg:tt)*) => {
-        let errstr = format!($($arg)*);
-        log::error!("{}", errstr);
-        return Err($et(errstr));
+    ($obj:path, $($arg:tt)*) => {
+        {
+            let errstr = format!($($arg)*);
+            log::error!("{}", errstr);
+            Err($obj(errstr))
+        }
     };
 }
