@@ -4,7 +4,7 @@ version = "0.0.3"
 authors = ["Abhijit Gadgil <gabhijit@iitbombay.org>"]
 edition = "2018"
 
-readme = "REDME.md"
+readme = "README.md"
 description = "Container handling in Rust."
 repository = "https://github.com/gabhijit/intermodal.git"
 
@@ -27,8 +27,8 @@ clap = "2.33"
 directories = "3.0"
 env_logger = "0.8"
 flate2 = { version = "1.0" }
-futures = { version = "0.3"}
-futures-util = { version = "0.3"}
+futures = { version = "0.3.15"}
+futures-util = { version = "0.3.15"}
 lazy_static = "1.1"
 libc = "0.2"
 log = "0.4"
