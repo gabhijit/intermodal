@@ -3,11 +3,18 @@ name = "intermodal-rs"
 version = "0.0.3"
 authors = ["Abhijit Gadgil <gabhijit@iitbombay.org>"]
 edition = "2018"
+
 readme = "REDME.md"
 description = "Container handling in Rust."
+repository = "https://github.com/gabhijit/intermodal.git"
+
+keywords = ["containers", "docker"]
+categories = ["command-line-utilities"]
+
 license-file = "LICENSE"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[badges]
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 
@@ -16,7 +23,7 @@ async-trait = "0.1"
 hex = "0.4"
 bytes = { version = "1"}
 chrono = { version = "0.4", features = ["serde"] }
-clap = "*"
+clap = "2.33"
 directories = "3.0"
 env_logger = "0.8"
 flate2 = { version = "1.0" }
@@ -29,7 +36,7 @@ hyper = { version = "0.14.2", features = ["client", "http1", "stream"] }
 hyper-tls = { version = "0.5" }
 regex = "1"
 serde = { version = "1.0.117", features = ["derive"] }
-serde_json = "*"
+serde_json = "1.0"
 sha2 = "0.9"
 tar = { version = "0.4.33" }
 tokio = { version = "1", features = ["macros", "rt", "fs"] }
@@ -38,7 +45,7 @@ xattr = { version = "0.2" }
 
 [dev-dependencies]
 wiremock = { version = "0.5.3"}
-tempdir = "*"
+tempdir = "0.3"
 
 
 [[bin]]
