@@ -1,4 +1,4 @@
-//! Container Image handling public APIs
+//! Higher level Image handling for Container Image handling.
 //!
 //! This module contains public APIs for handling different image functionality.
 

@@ -1,4 +1,4 @@
-//! Implementation of a 'trait Image' for Docker
+//! Implementation of a [`Image`][`crate::image::types::Image`] trait for Docker images.
 
 use async_trait::async_trait;
 use tokio::io::AsyncReadExt;
@@ -135,7 +135,11 @@ impl Image for DockerImage {
         );
 
         let docker_image: Schema2Image = serde_json::from_slice(&self.config_blob().await?)?;
-        let docker_config = docker_image.config.as_ref();
+        let default_docker_config = Schema2Config::default();
+        let docker_config = docker_image
+            .config
+            .as_ref()
+            .unwrap_or(&default_docker_config);
 
         Ok(ImageInspect {
             created: docker_image.created.to_string(),
@@ -143,15 +147,8 @@ impl Image for DockerImage {
             docker_version: docker_image.docker_version.unwrap_or_default(),
             os: docker_image.os.unwrap_or_default(),
             layers,
-            labels: docker_config
-                .unwrap_or(&Schema2Config::default())
-                .labels
-                .clone(),
-
-            env: docker_config
-                .unwrap_or(&Schema2Config::default())
-                .env
-                .clone(),
+            labels: docker_config.labels.clone(),
+            env: docker_config.env.clone(),
         })
     }
 }

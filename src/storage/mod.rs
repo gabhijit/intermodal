@@ -3,9 +3,9 @@
 //! When we want to do something useful with the 'images', we need to 'mount' those images to be
 //! able to work with those images. How the images can be 'mounted' is determined amongst other
 //! things by the underlying filesystem on which we want to mount the image. This involves, what is
-//! called as 'applying' the layer as described in [1].
+//! called as 'applying' the layer as described in [layer specification][1].
 //!
-//! 1: https://github.com/opencontainers/image-spec/blob/master/layer.md
+//! [1]: https://github.com/opencontainers/image-spec/blob/master/layer.md
 //!
 //! Clearly this will be different for different file systems. We'll initially support 'overlay'
 //! file-system.

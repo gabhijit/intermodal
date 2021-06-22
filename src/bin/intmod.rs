@@ -1,11 +1,10 @@
-#![warn(unused_variables)]
 use std::io;
 
 use clap::{crate_version, App, AppSettings, Arg};
 use env_logger::Env;
 
-use intermodal::cmd::image;
-use intermodal::image::transports;
+use intermodal_rs::cmd::image;
+use intermodal_rs::image::transports;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> io::Result<()> {

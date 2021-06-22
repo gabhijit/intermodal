@@ -1,5 +1,6 @@
-//! Handling related to OCI Image Layout as defined here
-//! https://github.com/opencontainers/image-spec/blob/master/image-layout.md
+//! Handling of [OCI Image Layout][oci_layout].
+//!
+//! [oci_layout]: https://github.com/opencontainers/image-spec/blob/master/image-layout.md
 
 //! # Notes
 //!

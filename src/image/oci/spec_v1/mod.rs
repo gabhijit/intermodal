@@ -9,10 +9,11 @@ pub struct Empty {}
 
 /// Struct representing a 'descriptor'.
 ///
-/// This structure implements a 'descriptor' defined in OCI Image Spec v1
-/// [description] (https://github.com/opencontainers/image-spec/blob/master/descriptor.md)
-/// [Go definitions]
-/// (https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go)
+/// This structure implements a 'descriptor' defined in OCI Image Spec v1 [description][desc].
+/// The original [Go definitions][godefs] are defined here.
+///
+/// [desc]: https://github.com/opencontainers/image-spec/blob/master/descriptor.md
+/// [godefs]: https://github.com/opencontainers/image-spec/blob/master/specs-go/v1/descriptor.go
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct Descriptor {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -84,10 +85,9 @@ impl Default for Index {
     }
 }
 
-/// Image Layout structure.
+/// Image Layout structure.  See [Reference][ref].
 ///
-/// [Reference]
-/// (https://github.com/opencontainers/image-spec/blob/master/image-layout.md#oci-layout-file)
+/// [ref]: https://github.com/opencontainers/image-spec/blob/master/image-layout.md#oci-layout-file
 #[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct ImageLayout {
     #[serde(rename = "imageLayoutVersion")]

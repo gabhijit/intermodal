@@ -1,4 +1,7 @@
-//! Docker client for Image registry
+//! Docker client for Docker Image registry (eg. [docker.io][dockerio] / [quay.io][quayio])
+//!
+//! [dockerio]: https://registry-1.docker.io
+//! [quayio]: https://quay.io/
 
 use core::convert::{Into, TryFrom};
 use std::boxed::Box;

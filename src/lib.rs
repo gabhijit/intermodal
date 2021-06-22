@@ -1,6 +1,6 @@
 //! # intermodal
 //!
-//! intermodal is an implementation of container handling in rust.
+//! intermodal is an implementation of container handling in Rust.
 //!
 //! ## About
 //!
