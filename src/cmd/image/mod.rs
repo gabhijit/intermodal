@@ -1,28 +1,53 @@
 use std::io;
 
-use clap::{App, AppSettings, ArgMatches, SubCommand};
+use clap::Subcommand;
 
 pub mod cache;
 pub mod inspect;
-pub mod mount;
+//pub mod mount;
 pub mod pull;
 
-/// Command line Parsing for 'image' subcommand
-pub fn add_subcmd_image() -> App<'static, 'static> {
-    SubCommand::with_name("image")
-        .settings(&[AppSettings::ArgRequiredElseHelp])
-        .about("Command to handle container images.")
+#[derive(Debug, Subcommand)]
+pub enum ImageCommands {
+    /// Inspect Container Image
+    #[command(arg_required_else_help = true)]
+    Inspect {
+        #[arg(long, help = "Image Name to Inspect.")]
+        name: String,
+
+        #[arg(long, short, help = "Output Configuration.")]
+        config: bool,
+
+        #[arg(long, help = "Output Raw manifest or Configuration.")]
+        raw: bool,
+    },
+
+    /// Pull Container Image from the registry.
+    #[command(arg_required_else_help = true)]
+    Pull {
+        #[arg(long, help = "Image Name to Inspect.")]
+        name: String,
+
+        #[arg(long, short, help = "Force pull the image.")]
+        force: bool,
+
+        #[arg(
+            long = "clean-on-err",
+            help = "Do not clear the local directory upon error. Useful during debugging."
+        )]
+        clean_on_err: bool,
+    },
+
+    /// Clear local cache of saved image blobs.
+    #[command(name = "clear-blob-cache")]
+    ClearCache,
 }
 
-/// Run 'image' subcommand asynchronously
-pub async fn run_subcmd_image(subcmd: &ArgMatches<'_>) -> io::Result<()> {
-    match subcmd.subcommand() {
-        ("inspect", Some(inspect_subcmd)) => Ok(inspect::run_subcmd_inspect(inspect_subcmd).await?),
-        ("pull", Some(pull_subcmd)) => Ok(pull::run_subcmd_pull(pull_subcmd).await?),
-        ("clear-blob-cache", Some(cache_subcmd)) => {
-            Ok(cache::run_subcmd_clear_cache(cache_subcmd)?)
-        }
-        _ => Err(io::Error::new(io::ErrorKind::Other, "Unknown Subcommand")),
+pub async fn run_subcmd_image(cmd: ImageCommands) -> std::io::Result<()> {
+    match cmd {
+        ImageCommands::Inspect { .. } => inspect::run_subcmd_inspect(cmd).await,
+        ImageCommands::Pull { .. } => pull::run_subcmd_pull(cmd).await,
+        ImageCommands::ClearCache => cache::run_subcmd_clear_cache(),
     }
 }
 

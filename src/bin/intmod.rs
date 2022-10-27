@@ -1,52 +1,50 @@
 use std::io;
 
-use clap::{crate_version, App, AppSettings, Arg};
+use clap::{Parser, Subcommand};
 use env_logger::Env;
 
-use intermodal_rs::cmd::image;
+use intermodal_rs::cmd::image::{self, ImageCommands};
 use intermodal_rs::image::transports;
+
+#[derive(Debug, Parser)]
+#[command(name = "intermodal")]
+#[command(about = "Container handling in Rust.", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    commands: Commands,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
+}
+
+#[derive(Debug, Subcommand)]
+enum Commands {
+    /// Handle container images.
+    #[command(arg_required_else_help = true)]
+    Image {
+        #[command(subcommand)]
+        image_commands: ImageCommands,
+    },
+}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> io::Result<()> {
-    let matches = App::new("Container handling in Rust")
-        .settings(&[AppSettings::ArgRequiredElseHelp])
-        .version(crate_version!())
-        .arg(
-            Arg::with_name("debug")
-                .short("d")
-                .global(true)
-                .multiple(true)
-                .help("Turns on verbose/debugging mode"),
-        )
-        .subcommand(
-            image::add_subcmd_image()
-                .subcommand(image::inspect::add_subcmd_inspect())
-                .subcommand(image::pull::add_subcommand_pull())
-                .subcommand(image::cache::add_subcommand_clear_cache()),
-        )
-        .get_matches();
+    let cli = Cli::parse();
 
+    eprintln!("cli: {:?}", cli);
     // Initialize the logger
-    env_logger::Builder::from_env(Env::default().default_filter_or(
-        match matches.occurrences_of("debug") {
-            0 => "info",
-            1 => "debug",
-            _ => "trace",
-        },
-    ))
+    env_logger::Builder::from_env(Env::default().default_filter_or(match cli.debug {
+        0 => "info",
+        1 => "debug",
+        _ => "trace",
+    }))
     .format_timestamp(None)
     .init();
 
     transports::init_transports();
 
-    #[allow(clippy::single_match)]
-    let _ = match matches.subcommand() {
-        ("image", Some(ref subcmd)) => Ok(image::run_subcmd_image(subcmd).await?),
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Unknown Command!",
-        )),
+    match cli.commands {
+        Commands::Image { image_commands } => image::run_subcmd_image(image_commands).await,
     };
-
     Ok(())
 }
