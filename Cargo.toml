@@ -22,29 +22,29 @@ async-compression = { version = "0.3.7", features = ["tokio", "gzip"] }
 async-trait = "0.1"
 hex = "0.4"
 bytes = { version = "1"}
-chrono = { version = "0.4", features = ["serde"] }
-clap = "2.33"
-directories = "3.0"
+chrono = { version = "0.4.22", features = ["serde"] }
+clap = "4.0"
+directories = "4.0"
 env_logger = "0.8"
 flate2 = { version = "1.0" }
 futures-util = { version = "0.3.15"}
 lazy_static = "1.1"
 libc = "0.2"
 log = "0.4"
-hyper = { version = "0.14.2", features = ["client", "http1", "stream"] }
-hyper-tls = { version = "0.5" }
-regex = "1"
+hyper = { version = "0.14.10", features = ["client", "http1", "stream"] }
+#hyper-tls = { version = "0.5" }
+regex = "1.6.0"
 serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "1.0"
-sha2 = "0.9"
-tar = { version = "0.4.33" }
-tokio = { version = "1", features = ["macros", "rt", "fs"] }
-tokio-util = { version = "0.6", features = ["io"]}
+sha2 = "0.10"
+tar = { version = "0.4.36" }
+tokio = { version = "1.21", features = ["macros", "rt", "fs"] }
+tokio-util = { version = "0.7", features = ["io"]}
 xattr = { version = "0.2" }
 
 [dev-dependencies]
-wiremock = { version = "0.5.3"}
-tempdir = "0.3"
+wiremock = { version = "0.5.15"}
+tempfile = "0.3"
 
 
 [[bin]]
