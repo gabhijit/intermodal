@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::io;
 use std::string::String;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use serde::Serialize;
 
+use crate::cmd::image::ImageCommands;
 use crate::image::{oci::digest::Digest, transports};
 
 // We use references because, this will be generated from underlying 'image.inspect' struct.
@@ -48,102 +48,84 @@ struct InspectOutput<'a> {
     env: &'a Vec<String>,
 }
 
-/// API function to subscribe handling of 'inspect' subcommands
-pub fn add_subcmd_inspect() -> App<'static, 'static> {
-    SubCommand::with_name("inspect")
-        .settings(&[AppSettings::ArgRequiredElseHelp])
-        .about("inspect container images")
-        .arg(
-            Arg::with_name("name")
-                .required(true)
-                .help("Image name to inspect")
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("config")
-                .help("output configuration")
-                .short("c")
-                .long("config"),
-        )
-        .arg(
-            Arg::with_name("raw")
-                .help("output raw manifest or configuration")
-                .long("raw"),
-        )
-}
-
 /// Run the 'inspect' subcommand asynchronously.
-pub async fn run_subcmd_inspect(cmd: &ArgMatches<'_>) -> io::Result<()> {
-    let image_name = cmd.value_of("name").unwrap();
+pub async fn run_subcmd_inspect(cmd: ImageCommands) -> io::Result<()> {
+    if let ImageCommands::Inspect {
+        name: ref image_name,
+        config,
+        raw,
+    } = cmd
+    {
+        log::debug!("Image Name: {}", image_name);
 
-    let config = cmd.is_present("config");
-    let raw = cmd.is_present("raw");
-
-    log::debug!("Image Name: {}", image_name);
-
-    if let Ok(image_ref) = transports::parse_image_name(image_name) {
-        log::debug!(
-            "Valid Reference found! {}",
-            image_ref.string_within_transport()
-        );
-
-        let mut image = image_ref.new_image()?;
-
-        log::debug!("calling get_manifest");
-        let manifest = image.manifest().await?;
-
-        let digeststr = Digest::from_bytes(&manifest.manifest).to_string();
-
-        if raw {
-            println!(
-                "Manifest for {}: {}",
-                image_name,
-                std::str::from_utf8(&manifest.manifest).unwrap()
+        if let Ok(image_ref) = transports::parse_image_name(image_name) {
+            log::debug!(
+                "Valid Reference found! {}",
+                image_ref.string_within_transport()
             );
-        }
 
-        if config {
-            log::debug!("Getting Config for the image.");
+            let mut image = image_ref.new_image()?;
+
+            log::debug!("calling get_manifest");
+            let manifest = image.manifest().await?;
+
+            let digeststr = Digest::from_bytes(&manifest.manifest).to_string();
+
             if raw {
                 println!(
-                    "Config Blob for Image '{}' : {}",
+                    "Manifest for {}: {}",
                     image_name,
-                    std::str::from_utf8(&image.config_blob().await?).unwrap()
+                    std::str::from_utf8(&manifest.manifest).unwrap()
                 );
-            } else {
-                let inspect_data = image.inspect().await?;
-                let tags = image.source_ref().get_repo_tags().await?;
-                log::debug!("Tags: {:#?}", tags);
-
-                let docker_ref = image_ref.docker_reference();
-
-                let mut reference_name: Option<String> = None;
-                let mut reference_tag: Option<String> = None;
-                if docker_ref.is_some() {
-                    reference_name = Some(docker_ref.as_ref().unwrap().name());
-                    reference_tag = Some(docker_ref.as_ref().unwrap().tag());
-                }
-
-                let output = InspectOutput {
-                    name: reference_name,
-                    tag: reference_tag,
-                    digest: &digeststr,
-                    repo_tags: &tags,
-                    created: &inspect_data.created,
-                    docker_version: &inspect_data.docker_version,
-                    labels: &inspect_data.labels,
-                    architecture: &inspect_data.architecture,
-                    os: &inspect_data.os,
-                    layers: &inspect_data.layers,
-                    env: &inspect_data.env,
-                };
-                println!("{}", serde_json::to_string_pretty(&output).unwrap());
             }
-        }
 
-        Ok(())
+            if config {
+                log::debug!("Getting Config for the image.");
+                if raw {
+                    println!(
+                        "Config Blob for Image '{}' : {}",
+                        image_name,
+                        std::str::from_utf8(&image.config_blob().await?).unwrap()
+                    );
+                } else {
+                    let inspect_data = image.inspect().await?;
+                    let tags = image.source_ref().get_repo_tags().await?;
+                    log::debug!("Tags: {:#?}", tags);
+
+                    let docker_ref = image_ref.docker_reference();
+
+                    let mut reference_name: Option<String> = None;
+                    let mut reference_tag: Option<String> = None;
+                    if docker_ref.is_some() {
+                        reference_name = Some(docker_ref.as_ref().unwrap().name());
+                        reference_tag = Some(docker_ref.as_ref().unwrap().tag());
+                    }
+
+                    let output = InspectOutput {
+                        name: reference_name,
+                        tag: reference_tag,
+                        digest: &digeststr,
+                        repo_tags: &tags,
+                        created: &inspect_data.created,
+                        docker_version: &inspect_data.docker_version,
+                        labels: &inspect_data.labels,
+                        architecture: &inspect_data.architecture,
+                        os: &inspect_data.os,
+                        layers: &inspect_data.layers,
+                        env: &inspect_data.env,
+                    };
+                    println!("{}", serde_json::to_string_pretty(&output).unwrap());
+                }
+            }
+
+            Ok(())
+        } else {
+            let err = format!("Invalid Image Name: {}", image_name);
+            log::error!("{}", &err);
+            Err(io::Error::new(io::ErrorKind::InvalidInput, err))
+        }
     } else {
-        let err = format!("Invalid Image Name: {}", image_name);
+        let err = format!("Invalid Command: {:?}", cmd);
         log::error!("{}", &err);
         Err(io::Error::new(io::ErrorKind::InvalidInput, err))
     }
