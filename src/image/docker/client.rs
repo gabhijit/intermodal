@@ -47,6 +47,7 @@ impl fmt::Display for ClientError {
 // Required to get tags list.
 #[derive(Debug, Deserialize)]
 struct TagInfo {
+    #[allow(unused)]
     name: String,
     tags: Vec<String>,
 }
@@ -98,11 +99,10 @@ impl DockerClient {
         } else {
             repo_url = repository.parse::<Uri>().unwrap();
 
-            let scheme: &str;
-            if repo_url.port().is_some() {
-                scheme = "http";
+            let scheme = if repo_url.port().is_some() {
+                "http"
             } else {
-                scheme = "https";
+                "https"
             };
             if repo_url.scheme().is_none() {
                 repo_url = Uri::builder()
@@ -210,7 +210,7 @@ impl DockerClient {
                 }
             }
 
-            return crate::log_err_return!(ClientError, "Error in Downloading: {}", status);
+            crate::log_err_return!(ClientError, "Error in Downloading: {}", status)
         }
     }
 
@@ -266,10 +266,10 @@ impl DockerClient {
         log::debug!("Getting Blob: {}", blob_url_path);
 
         let mut cache_path = image_blobs_cache_root()?;
-        cache_path.push(&digest.algorithm());
+        cache_path.push(digest.algorithm());
         tokio::fs::create_dir_all(&cache_path).await?;
 
-        cache_path.push(&digest.hex_digest());
+        cache_path.push(digest.hex_digest());
 
         if cache_path.exists() {
             log::trace!("Blob exists locally, verifying...{:?}", &cache_path);
@@ -323,7 +323,7 @@ impl DockerClient {
         let mut body = response.into_body();
         while let Some(data) = body.next().await {
             let data = data?;
-            let _ = f.write(&data).await?;
+            f.write_all(&data).await?;
         }
         f.flush().await?;
 
@@ -367,7 +367,7 @@ impl DockerClient {
             .perform_http_request(all_tags_url, "GET", Some(&headers), true)
             .await?;
 
-        let taginfo: TagInfo = serde_json::from_slice(&to_bytes(response).await?.to_vec())?;
+        let taginfo: TagInfo = serde_json::from_slice(&to_bytes(response).await?)?;
         log::trace!("Received Tags: {:?}", taginfo);
 
         Ok(taginfo.tags)
@@ -389,7 +389,7 @@ impl DockerClient {
         log::debug!(
             "Getting Bearer Token for Path: '{}', Scope: '{}'",
             path,
-            scope.or(Some("")).unwrap()
+            scope.unwrap_or("")
         );
 
         // If we have already determined, no auth is required, no bearer token is needed to be
@@ -448,13 +448,13 @@ impl DockerClient {
                 }
 
                 log::debug!("Bearer Token for Client Saved!");
-                return Ok(());
+                Ok(())
             } else {
-                return crate::log_err_return!(
+                crate::log_err_return!(
                     ClientError,
                     "No 'WWW-Authenticate' Header found with {}",
                     response.status()
-                );
+                )
             }
         } else if response.status().is_success() {
             // unlikely path
@@ -498,12 +498,12 @@ impl DockerClient {
         let mut realm: Option<&str> = None;
         let mut service: Option<&str> = None;
         let header_vals: Vec<&str> = auth_header.to_str().unwrap().split_whitespace().collect();
-        let auth_type = header_vals.get(0).unwrap();
+        let auth_type = header_vals.first().unwrap();
         let auth_realm = header_vals.get(1).unwrap();
         log::trace!("auth_type: {}, auth_realm: {}", auth_type, auth_realm);
-        let _ = auth_realm.split(',').for_each(|v| {
+        auth_realm.split(',').for_each(|v| {
             let toks: Vec<&str> = v.split('=').collect();
-            if let Some(first) = toks.get(0) {
+            if let Some(first) = toks.first() {
                 if *first == "realm" {
                     realm = Some(toks.get(1).unwrap().trim_matches('"'));
                 }
@@ -531,6 +531,7 @@ struct BearerToken {
     token: String,
 
     #[serde(default = "default_token")]
+    #[allow(unused)]
     access_token: String,
 
     #[serde(default = "issued_now")]

@@ -37,7 +37,7 @@ pub fn parse_image_name<'a>(image_name: &'a str) -> ImageResult<Box<dyn ImageRef
     }
 
     {
-        let transport_name = tokens.get(0).unwrap().to_string();
+        let transport_name = tokens.first().unwrap().to_string();
         let reference_part = tokens.get(1).unwrap();
 
         log::debug!(
@@ -67,7 +67,7 @@ pub fn transport_from_image_name(
     }
 
     {
-        let transport_name = tokens.get(0).unwrap().to_string();
+        let transport_name = tokens.first().unwrap().to_string();
         log::debug!(
             "Getting Transport object corresponding to {}",
             transport_name

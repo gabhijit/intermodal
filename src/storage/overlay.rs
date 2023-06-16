@@ -15,7 +15,7 @@ const XATTR_OVERLAY_FS_OPAQUE_VAL: &[u8; 1] = b"y";
 /// Returns the Path to the 'layers' directory.
 pub fn layers_base_path() -> std::io::Result<PathBuf> {
     let mut layers_base_path = storage_root_for_fs("overlay")?;
-    let _ = layers_base_path.push("layers");
+    layers_base_path.push("layers");
     if !layers_base_path.exists() {
         std::fs::create_dir_all(&layers_base_path)?;
     }
@@ -32,16 +32,15 @@ pub fn apply_layer<P: AsRef<Path> + std::fmt::Debug>(
     base_path: Option<&PathBuf>,
     lower: &str,
 ) -> std::io::Result<()> {
-    let mut layer_path: PathBuf;
-    if base_path.is_none() {
-        layer_path = layers_base_path()?;
+    let mut layer_path = if let Some(base_path) = base_path {
+        PathBuf::from(base_path)
     } else {
-        layer_path = PathBuf::from(base_path.unwrap())
-    }
+        layers_base_path()?
+    };
 
     log::debug!("Applying Layer: `{:?}`", layer);
 
-    let _ = layer_path.push(format!("{}/{}", digest.algorithm(), digest.hex_digest()));
+    layer_path.push(format!("{}/{}", digest.algorithm(), digest.hex_digest()));
 
     // Create the directory identified by the checksum
     if !layer_path.exists() {
@@ -53,7 +52,7 @@ pub fn apply_layer<P: AsRef<Path> + std::fmt::Debug>(
     // create the 'diff' directory - This is where 'rootFS' will be mounted
     log::trace!("Creating 'diff' directory to extract the layer.");
     let mut diff_path = PathBuf::from(&layer_path);
-    let _ = diff_path.push("diff");
+    diff_path.push("diff");
     std::fs::create_dir_all(&diff_path)?;
 
     // Writes the 'lower' file as per docker's overlay2
@@ -62,13 +61,13 @@ pub fn apply_layer<P: AsRef<Path> + std::fmt::Debug>(
     if !lower.is_empty() {
         log::trace!("Generating 'lower' file and 'work' directory.");
         let mut lower_path = PathBuf::from(&layer_path);
-        let _ = lower_path.push("lower");
+        lower_path.push("lower");
         let mut f = std::fs::File::create(lower_path)?;
         f.write_all(lower.as_bytes())?;
         f.sync_all()?;
 
         let mut workdir_path = PathBuf::from(&layer_path);
-        let _ = workdir_path.push("work");
+        workdir_path.push("work");
         std::fs::create_dir(workdir_path)?;
     }
 
@@ -95,7 +94,7 @@ pub fn apply_layer<P: AsRef<Path> + std::fmt::Debug>(
             handle_whiteout(&diff_path, &entry)?;
         } else {
             // Not a white-out simply write the entry to the path.
-            let _ = entry.unpack_in(&diff_path)?;
+            entry.unpack_in(&diff_path)?;
         }
     }
 
@@ -118,7 +117,7 @@ where
     if entry_path.ends_with(WHITEOUT_OPAQUE) {
         log::trace!("Entry is an opaque entry, applying 'xattr'.");
         let mut components = entry_path.components();
-        if let Some(_) = components.next_back() {
+        if components.next_back().is_some() {
             // Last is consumed. use whatever remains as a path.
             let joined = base.as_ref().join(components.as_path());
             std::fs::create_dir_all(&joined)?;

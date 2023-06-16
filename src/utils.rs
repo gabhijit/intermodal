@@ -29,7 +29,7 @@ pub fn image_blobs_cache_root() -> std::io::Result<PathBuf> {
         None => std::env::temp_dir(),
     };
 
-    let _ = blobs_cache_dir.push("blobs");
+    blobs_cache_dir.push("blobs");
 
     if !blobs_cache_dir.exists() {
         log::debug!("The Parent Cache directory does not exist. Creating.");
@@ -60,7 +60,7 @@ pub fn oci_images_root() -> std::io::Result<PathBuf> {
         }
     };
 
-    let _ = images_root_dir.push("images");
+    images_root_dir.push("images");
 
     if !images_root_dir.exists() {
         log::debug!("Images Root Directory does not exist. Creating.");
@@ -82,9 +82,9 @@ pub fn storage_root_for_fs(fs: &str) -> std::io::Result<PathBuf> {
         }
     };
 
-    let _ = storage_root_dir.push("storage");
+    storage_root_dir.push("storage");
 
-    let _ = storage_root_dir.push(fs);
+    storage_root_dir.push(fs);
 
     if !storage_root_dir.exists() {
         log::debug!(

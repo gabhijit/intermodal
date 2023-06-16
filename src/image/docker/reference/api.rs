@@ -112,7 +112,7 @@ pub(crate) fn parse(input_ref: &str) -> DockerReferenceResult {
                         },
                         tag,
                         digest: Digest::new_from_str(digest),
-                        input_ref: String::from(input_ref),
+                        input_ref,
                     })
                 }
                 None => Err(ReferenceError::NameNotCanonical),

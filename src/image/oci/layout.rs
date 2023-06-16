@@ -60,7 +60,7 @@ impl From<serde_json::Error> for OCIImageLayoutError {
 
 #[derive(Debug, Clone)]
 pub struct OCIImageLayout {
-    name: String,
+    _name: String,
     tag: Option<String>,
     image_path: PathBuf,
     index: Index,
@@ -76,18 +76,15 @@ impl OCIImageLayout {
         let mut image_path = PathBuf::from(path.as_ref());
 
         if tag.is_none() {
-            let _ = image_path.push(name);
+            image_path.push(name);
         } else {
-            let _ = image_path.push(format!("{}/{}", name, tag.unwrap()));
+            image_path.push(format!("{}/{}", name, tag.unwrap()));
         }
 
-        let tag = match tag {
-            Some(t) => Some(t.to_string()),
-            None => None,
-        };
+        let tag = tag.map(|t| t.to_string());
 
         OCIImageLayout {
-            name: name.to_string(),
+            _name: name.to_string(),
             tag,
             index: Index::default(),
             layout: ImageLayout::default(),
@@ -101,14 +98,14 @@ impl OCIImageLayout {
     pub async fn create_fs_path(&mut self) -> Result<(), std::io::Error> {
         let mut path = self.image_path.clone();
         path.push(BLOBS_DIRNAME);
-        let _ = tokio::fs::create_dir_all(&path).await?;
+        tokio::fs::create_dir_all(&path).await?;
 
         Ok(())
     }
 
     /// Delete the Layout from the FS
     pub async fn delete_fs_path(&mut self) -> Result<(), std::io::Error> {
-        let _ = tokio::fs::remove_dir_all(&self.image_path).await?;
+        tokio::fs::remove_dir_all(&self.image_path).await?;
         Ok(())
     }
 
@@ -126,7 +123,7 @@ impl OCIImageLayout {
 
         let contents = serde_json::to_vec(&self.layout)?;
         let mut writer = BufWriter::new(file);
-        writer.write(&contents).await?;
+        writer.write_all(&contents).await?;
         writer.flush().await?;
 
         Ok(())
@@ -146,7 +143,7 @@ impl OCIImageLayout {
 
         let contents = serde_json::to_vec(&self.index)?;
         let mut writer = BufWriter::new(file);
-        writer.write(&contents).await?;
+        writer.write_all(&contents).await?;
         writer.flush().await?;
 
         Ok(())
@@ -170,7 +167,7 @@ impl OCIImageLayout {
             tokio::fs::create_dir(&path).await?;
         }
 
-        let _ = path.push(digest.hex_digest());
+        path.push(digest.hex_digest());
 
         let mut file = File::create(&path).await?;
 
@@ -200,7 +197,7 @@ impl OCIImageLayout {
     /// Note: The updated index is not written to the disk, caller should explicitly write it to
     /// disk.
     pub fn update_index(&mut self, index: Index) {
-        let _ = std::mem::replace(&mut self.index, index);
+        self.index = index;
     }
 }
 

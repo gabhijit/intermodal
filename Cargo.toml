@@ -38,13 +38,13 @@ serde = { version = "1.0.117", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
 tar = { version = "0.4.36" }
-tokio = { version = "1.21", features = ["macros", "rt", "fs"] }
+tokio = { version = "1", features = ["macros", "rt", "fs"] }
 tokio-util = { version = "0.7", features = ["io"]}
 xattr = { version = "0.2" }
 
 [dev-dependencies]
-wiremock = { version = "0.5.15"}
-tempfile = "0.3"
+wiremock = { version = "0.5"}
+tempfile = "3"
 
 
 [[bin]]

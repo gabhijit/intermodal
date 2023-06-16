@@ -52,7 +52,7 @@ impl Digest {
 
     fn digester(&self) -> Result<Box<dyn DynDigest + Send>, DigestError> {
         match &*self.algorithm.to_lowercase() {
-            "sha256" => Ok(Box::new(sha2::Sha256::default())),
+            "sha256" => Ok(Box::<sha2::Sha256>::default()),
             _ => Err(DigestError::AlgorithmNotSupported(
                 self.algorithm.to_string(),
             )),
@@ -98,7 +98,7 @@ impl Digest {
         let tokens: Vec<&str> = s.split(':').collect();
         if tokens.len() == 2 {
             return Some(Digest {
-                algorithm: String::from(*tokens.get(0).unwrap()),
+                algorithm: String::from(*tokens.first().unwrap()),
                 hex_digest: String::from(*tokens.get(1).unwrap()),
             });
         };
@@ -192,7 +192,7 @@ impl FromStr for Digest {
         let tokens: Vec<&str> = s.split(':').collect();
         if tokens.len() == 2 {
             return Ok(Digest {
-                algorithm: String::from(*tokens.get(0).unwrap()),
+                algorithm: String::from(*tokens.first().unwrap()),
                 hex_digest: String::from(*tokens.get(1).unwrap()),
             });
         }

@@ -45,6 +45,5 @@ async fn main() -> io::Result<()> {
 
     match cli.commands {
         Commands::Image { image_commands } => image::run_subcmd_image(image_commands).await,
-    };
-    Ok(())
+    }
 }

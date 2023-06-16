@@ -123,7 +123,7 @@ async fn perform_image_pull(
     // Manifest written, now create index.json
     let manifest_descriptor = Descriptor {
         mediatype: Some(manifest.mime_type.to_string()),
-        digest: digest,
+        digest,
         size: manifest.manifest.len() as i64,
         urls: None,
         platform: None,
@@ -211,7 +211,7 @@ async fn do_download_image_layer<'a>(
         // FIXME: This unnecessarily verifies the image that we just verified above.
         let layer_reader = img_source.get_blob(&layer_digest).await?;
         let mut reader = BufReader::new(layer_reader);
-        &img_layout
+        img_layout
             .write_blob_file(&layer_digest, &mut reader)
             .await?;
     } else {

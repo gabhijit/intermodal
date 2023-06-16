@@ -53,7 +53,7 @@ impl DockerImage {
                     let platform = get_os_platform();
                     if &platform.architecture == architecture.unwrap() && platform.os == os {
                         log::trace!("Getting Manifest for Digest: {}", m.digest);
-                        return Ok(self.source.get_manifest(Some(&m.digest)).await?);
+                        return self.source.get_manifest(Some(&m.digest)).await;
                     }
                 }
                 log::error!("No Manifest found Matching Current OS/Platform!");
@@ -71,7 +71,7 @@ impl DockerImage {
     }
 
     async fn resolve_manifest(&mut self, original: &ImageManifest) -> ImageResult<ImageManifest> {
-        Ok(self.manifest_for_our_os_arch(original).await?)
+        self.manifest_for_our_os_arch(original).await
     }
 }
 

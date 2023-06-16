@@ -8,6 +8,6 @@ use super::schema2;
 
 #[derive(Debug)]
 pub(crate) struct DockerManifestSchema2 {
-    source: Box<dyn ImageSource>,
-    schema: schema2::Schema2,
+    _source: Box<dyn ImageSource>,
+    _schema: schema2::Schema2,
 }
