@@ -137,39 +137,31 @@ mod tests {
     use super::*;
     use crate::image::transports;
 
-    #[test]
-    fn test_subcommand_inspect_no_name() {
-        let m = add_subcmd_inspect().get_matches_from_safe(vec!["inspect"]);
-        assert!(m.is_err());
-    }
+    #[tokio::test]
+    async fn test_subcommand_run_no_config_no_raw_success() {
+        transports::init_transports();
+        let image_inspect = ImageCommands::Inspect {
+            name: "docker://fedora".to_string(),
+            config: false,
+            raw: false,
+        };
 
-    #[test]
-    fn test_subcommand_image_name() {
-        let m = add_subcmd_inspect()
-            .get_matches_from_safe(vec!["inspect", "fedora"])
-            .unwrap();
+        let result = run_subcmd_inspect(image_inspect).await;
 
-        assert_eq!(m.value_of("name"), Some("fedora"));
-    }
-
-    #[test]
-    fn test_unsupported_flag() {
-        let m = add_subcmd_inspect().get_matches_from_safe(vec!["inspect", "--war"]);
-
-        assert!(m.is_err());
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
-    async fn test_subcommand_run_success() {
+    async fn test_subcommand_run_config_no_raw_success() {
         transports::init_transports();
-        let m = add_subcmd_inspect()
-            .get_matches_from_safe(vec!["inspec", "docker://fedora"])
-            .unwrap();
-        let name = m.value_of("name").unwrap();
+        let image_inspect = ImageCommands::Inspect {
+            name: "docker://fedora".to_string(),
+            config: true,
+            raw: false,
+        };
 
-        assert_eq!(name, "docker://fedora");
+        let result = run_subcmd_inspect(image_inspect).await;
 
-        let result = run_subcmd_inspect(&m).await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "{:?}", result.err().unwrap());
     }
 }

@@ -164,7 +164,7 @@ mod tests {
     async fn test_apply_layer() {
         // Pull the image
         let prefix = "layer_test";
-        let pull_tempdir = tempdir::TempDir::new(prefix).unwrap();
+        let pull_tempdir = tempfile::TempDir::new_in(prefix).unwrap();
         let r = pull_busybox_image_for_test(pull_tempdir.path()).await;
         assert!(r.is_ok());
 
@@ -200,7 +200,7 @@ mod tests {
             layer0_digest.hex_digest()
         ));
 
-        let layout_tempdir = tempdir::TempDir::new(prefix).unwrap();
+        let layout_tempdir = tempfile::TempDir::new_in(prefix).unwrap();
         let r = apply_layer(
             &layer0_digest,
             layer0_blobpath,
